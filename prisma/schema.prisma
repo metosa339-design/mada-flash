@@ -1,0 +1,162 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Categories for organizing content
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  color       String    @default("#ff6b35")
+  icon        String?
+  order       Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  articles    Article[]
+  vlogs       Vlog[]
+}
+
+// Articles - main content type
+model Article {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  summary         String?
+  content         String
+  originalContent String?   // Original content before reformulation
+  sourceUrl       String?   // Link to original source
+  sourceName      String?   // Name of the source (e.g., "Midi Madagasikara")
+  imageUrl        String?
+  thumbnailUrl    String?
+  categoryId      String?
+  category        Category? @relation(fields: [categoryId], references: [id])
+
+  // Status management
+  status          String    @default("draft") // draft, scheduled, published, archived
+  publishedAt     DateTime?
+  scheduledAt     DateTime? // For scheduled publication
+
+  // Metadata
+  views           Int       @default(0)
+  isFeatured      Boolean   @default(false)
+  isBreaking      Boolean   @default(false)
+  isFromRSS       Boolean   @default(false) // True if imported from RSS
+  isAiEnhanced    Boolean   @default(false) // True if content was enhanced by AI
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  media           ArticleMedia[]
+}
+
+// Vlogs - video content
+model Vlog {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  description String?
+  videoUrl    String    // YouTube, Vimeo, or local video URL
+  thumbnailUrl String?
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+
+  // Status
+  status      String    @default("draft") // draft, scheduled, published, archived
+  publishedAt DateTime?
+  scheduledAt DateTime?
+
+  // Metadata
+  views       Int       @default(0)
+  duration    Int?      // Duration in seconds
+  isFeatured  Boolean   @default(false)
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Media library - images, files
+model Media {
+  id          String    @id @default(cuid())
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int       // Size in bytes
+  url         String
+  thumbnailUrl String?
+  alt         String?
+  caption     String?
+
+  // Organization
+  folder      String    @default("general")
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  articles    ArticleMedia[]
+}
+
+// Junction table for Article-Media many-to-many relationship
+model ArticleMedia {
+  id        String   @id @default(cuid())
+  articleId String
+  mediaId   String
+  order     Int      @default(0)
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  media     Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, mediaId])
+}
+
+// Site settings
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  type      String   @default("string") // string, number, boolean, json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// RSS Feed sources for automatic import
+model RSSSource {
+  id            String    @id @default(cuid())
+  name          String
+  url           String    @unique
+  categoryId    String?   // Default category for imported articles
+  isActive      Boolean   @default(true)
+  autoPublish   Boolean   @default(false) // Auto-publish after reformulation
+  lastFetchedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// Scheduled tasks for automation
+model ScheduledTask {
+  id          String    @id @default(cuid())
+  type        String    // publish_article, fetch_rss, etc.
+  targetId    String?   // ID of the article/vlog to publish
+  scheduledAt DateTime
+  status      String    @default("pending") // pending, completed, failed
+  error       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
