@@ -160,3 +160,22 @@ model ScheduledTask {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
+
+// Historical events for "Ce jour dans l'histoire" feature
+model HistoricalEvent {
+  id            String   @id @default(cuid())
+  day           Int      // Day of month (1-31)
+  month         Int      // Month (1-12)
+  year          Int      // Year when event happened
+  title         String   // Short title
+  description   String   // Detailed description
+  location      String?  // Country or region
+  isMadagascar  Boolean  @default(false) // Priority for Madagascar events
+  imageUrl      String?  // Optional illustration
+  source        String?  // Source/reference
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([day, month])
+}

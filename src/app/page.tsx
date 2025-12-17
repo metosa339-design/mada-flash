@@ -10,7 +10,8 @@ import {
   BreakingNewsBanner,
   ArticleModal,
   HoroscopeSection,
-  RecipeSection
+  RecipeSection,
+  HistoryToday
 } from '@/components';
 import {
   mockNews,
@@ -182,6 +183,13 @@ export default function Home() {
               articles={latestArticles}
               onArticleClick={handleArticleClick}
             />
+
+            {/* Ce jour dans l'histoire */}
+            <section className="py-8 bg-gradient-to-b from-white to-amber-50/30">
+              <div className="max-w-7xl mx-auto px-4">
+                <HistoryToday />
+              </div>
+            </section>
 
             {/* Horoscope & Recipe Section */}
             <section className="py-8 bg-gray-50">

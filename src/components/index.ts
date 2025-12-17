@@ -9,6 +9,7 @@ export { default as BreakingNewsBanner } from './BreakingNewsBanner';
 export { default as ArticleModal } from './ArticleModal';
 export { default as HoroscopeSection } from './HoroscopeSection';
 export { default as RecipeSection } from './RecipeSection';
+export { default as HistoryToday } from './HistoryToday';
 export {
   Skeleton,
   NewsCardSkeleton,
