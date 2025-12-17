@@ -120,6 +120,15 @@ export default function Home() {
       {/* Header */}
       <Header />
 
+      {/* Ce jour dans l'histoire - Banner at top */}
+      {!hasActiveFilters && (
+        <section className="bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 py-3">
+          <div className="max-w-7xl mx-auto px-4">
+            <HistoryToday />
+          </div>
+        </section>
+      )}
+
       {/* Main Content */}
       <main className="flex-1">
         {hasActiveFilters ? (
@@ -183,13 +192,6 @@ export default function Home() {
               articles={latestArticles}
               onArticleClick={handleArticleClick}
             />
-
-            {/* Ce jour dans l'histoire */}
-            <section className="py-8 bg-gradient-to-b from-white to-amber-50/30">
-              <div className="max-w-7xl mx-auto px-4">
-                <HistoryToday />
-              </div>
-            </section>
 
             {/* Horoscope & Recipe Section */}
             <section className="py-8 bg-gray-50">
