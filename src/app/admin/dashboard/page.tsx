@@ -338,6 +338,35 @@ export default function AdminDashboard() {
     }
   };
 
+  // Toggle featured status directly from the list
+  const handleToggleFeatured = async (article: Article) => {
+    try {
+      const res = await fetch(`/api/admin/articles/${article.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: article.title,
+          content: article.content,
+          summary: article.summary,
+          categoryId: article.categoryId,
+          imageUrl: article.imageUrl,
+          sourceUrl: article.sourceUrl,
+          sourceName: article.sourceName,
+          status: article.status,
+          isFeatured: !article.isFeatured,
+          isBreaking: article.isBreaking,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchArticles();
+      }
+    } catch (error) {
+      console.error('Error toggling featured:', error);
+    }
+  };
+
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return;
 
@@ -691,7 +720,7 @@ export default function AdminDashboard() {
                           <span>{formatDate(article.createdAt)}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${
                             article.status === 'published'
@@ -703,6 +732,18 @@ export default function AdminDashboard() {
                         >
                           {article.status === 'published' ? 'Publié' : article.status === 'scheduled' ? 'Programmé' : 'Brouillon'}
                         </span>
+                        {/* Featured Toggle Button */}
+                        <button
+                          onClick={() => handleToggleFeatured(article)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            article.isFeatured
+                              ? 'bg-amber-100 hover:bg-amber-200'
+                              : 'hover:bg-gray-100'
+                          }`}
+                          title={article.isFeatured ? 'Retirer de la une' : 'Mettre à la une'}
+                        >
+                          <Star className={`w-4 h-4 ${article.isFeatured ? 'text-amber-500 fill-amber-500' : 'text-gray-400'}`} />
+                        </button>
                         <button
                           onClick={() => {
                             setEditingArticle(article);
@@ -801,7 +842,7 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${
                             article.status === 'published'
@@ -813,6 +854,18 @@ export default function AdminDashboard() {
                         >
                           {article.status === 'published' ? 'Publié' : article.status === 'scheduled' ? 'Programmé' : 'Brouillon'}
                         </span>
+                        {/* Featured Toggle Button */}
+                        <button
+                          onClick={() => handleToggleFeatured(article)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            article.isFeatured
+                              ? 'bg-amber-100 hover:bg-amber-200'
+                              : 'hover:bg-gray-100'
+                          }`}
+                          title={article.isFeatured ? 'Retirer de la une' : 'Mettre à la une'}
+                        >
+                          <Star className={`w-4 h-4 ${article.isFeatured ? 'text-amber-500 fill-amber-500' : 'text-gray-400'}`} />
+                        </button>
                         <button
                           onClick={() => {
                             setEditingArticle(article);

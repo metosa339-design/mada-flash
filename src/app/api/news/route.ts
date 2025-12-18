@@ -550,7 +550,10 @@ export async function GET(request: Request) {
     if (fromDB) {
       const dbArticles = await prisma.article.findMany({
         where: { status: 'published' },
-        orderBy: { publishedAt: 'desc' },
+        orderBy: [
+          { isFeatured: 'desc' },  // Featured articles first
+          { publishedAt: 'desc' }  // Then by date
+        ],
         take: 50,
         include: { category: true },
       });
@@ -562,7 +565,10 @@ export async function GET(request: Request) {
         // Fetch again after sync
         const freshArticles = await prisma.article.findMany({
           where: { status: 'published' },
-          orderBy: { publishedAt: 'desc' },
+          orderBy: [
+            { isFeatured: 'desc' },  // Featured articles first
+            { publishedAt: 'desc' }  // Then by date
+          ],
           take: 50,
           include: { category: true },
         });
