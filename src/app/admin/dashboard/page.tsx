@@ -203,6 +203,9 @@ export default function AdminDashboard() {
   // RSS sync state
   const [isSyncingRSS, setIsSyncingRSS] = useState(false);
 
+  // Image update state
+  const [isUpdatingImages, setIsUpdatingImages] = useState(false);
+
   useEffect(() => {
     checkAuth();
   }, []);
@@ -450,6 +453,33 @@ export default function AdminDashboard() {
     }
   };
 
+  // Mettre à jour les images des articles (Pixabay/Pexels)
+  const updateArticleImages = async () => {
+    setIsUpdatingImages(true);
+    try {
+      const res = await fetch('/api/admin/articles/update-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ updateAll: true }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`${data.results.updated} images mises à jour sur ${data.results.total} articles!`);
+        fetchArticles();
+        // Vider le cache des images pour forcer le rechargement
+        aiImageCache.clear();
+      } else {
+        alert('Erreur lors de la mise à jour des images');
+      }
+    } catch (error) {
+      console.error('Error updating images:', error);
+      alert('Erreur lors de la mise à jour des images');
+    } finally {
+      setIsUpdatingImages(false);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('fr-MG', {
       day: 'numeric',
@@ -563,6 +593,19 @@ export default function AdminDashboard() {
                 <RefreshCw className="w-4 h-4" />
               )}
               Sync RSS
+            </button>
+            <button
+              onClick={updateArticleImages}
+              disabled={isUpdatingImages}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium flex items-center gap-2 hover:bg-blue-700 transition-colors disabled:opacity-50"
+              title="Mettre à jour les images des articles sans image (Pixabay/Pexels)"
+            >
+              {isUpdatingImages ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ImageIcon className="w-4 h-4" />
+              )}
+              Images
             </button>
             <button
               onClick={() => {
