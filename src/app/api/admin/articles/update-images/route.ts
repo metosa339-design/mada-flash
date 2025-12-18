@@ -1,37 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
+import { searchImage } from '@/lib/image-search';
 
 // Vérifier l'authentification admin
 async function isAuthenticated() {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('admin_session');
   return sessionCookie?.value === 'authenticated';
-}
-
-// Fonction pour rechercher une image appropriée
-async function searchImageForArticle(title: string, summary: string, categoryName?: string): Promise<string | null> {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/images/search`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title,
-        summary,
-        category: categoryName?.toLowerCase()
-      })
-    });
-
-    const data = await response.json();
-
-    if (data.success && data.image?.url && !data.image.url.includes('placeholder')) {
-      return data.image.url;
-    }
-  } catch (error) {
-    console.error('Error searching image:', error);
-  }
-
-  return null;
 }
 
 // GET: Voir les articles sans images ou avec placeholder
@@ -126,16 +102,17 @@ export async function POST(request: NextRequest) {
     // Traiter chaque article
     for (const article of articlesToUpdate) {
       try {
-        const imageUrl = await searchImageForArticle(
+        // Utiliser directement la fonction importée au lieu d'un appel HTTP
+        const image = await searchImage(
           article.title,
           article.summary || '',
-          article.category?.name
+          article.category?.name?.toLowerCase()
         );
 
-        if (imageUrl) {
+        if (image && image.url && !image.url.includes('placeholder')) {
           await prisma.article.update({
             where: { id: article.id },
-            data: { imageUrl }
+            data: { imageUrl: image.url }
           });
 
           results.updated++;
@@ -143,7 +120,7 @@ export async function POST(request: NextRequest) {
             id: article.id,
             title: article.title.substring(0, 50) + '...',
             status: 'success',
-            imageUrl
+            imageUrl: image.url
           });
         } else {
           results.failed++;
@@ -158,6 +135,7 @@ export async function POST(request: NextRequest) {
         await new Promise(resolve => setTimeout(resolve, 500));
 
       } catch (err) {
+        console.error(`Error updating image for article ${article.id}:`, err);
         results.failed++;
         results.details.push({
           id: article.id,
