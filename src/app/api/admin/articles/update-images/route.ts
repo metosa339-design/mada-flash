@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { searchImage } from '@/lib/image-search';
+import { searchImage, getRecentlyUsedImages } from '@/lib/image-search';
 
 // Helper to check authentication (same as other admin routes)
 async function checkAuth(request: NextRequest) {
@@ -101,14 +101,20 @@ export async function POST(request: NextRequest) {
       details: [] as { id: string; title: string; status: string; imageUrl?: string }[]
     };
 
+    // Pre-fetch recently used images once for better performance
+    const usedImages = await getRecentlyUsedImages();
+    console.log(`Starting image update for ${articlesToUpdate.length} articles, excluding ${usedImages.size} already used images`);
+
     // Traiter chaque article
     for (const article of articlesToUpdate) {
       try {
-        // Utiliser directement la fonction importée au lieu d'un appel HTTP
+        // Utiliser directement la fonction importée avec la liste des images utilisées
         const image = await searchImage(
           article.title,
           article.summary || '',
-          article.category?.name?.toLowerCase()
+          article.category?.name?.toLowerCase(),
+          false, // forceAI
+          usedImages // pass the set of used images
         );
 
         if (image && image.url && !image.url.includes('placeholder')) {
@@ -116,6 +122,11 @@ export async function POST(request: NextRequest) {
             where: { id: article.id },
             data: { imageUrl: image.url }
           });
+
+          // Add the newly assigned image to the set to avoid duplicates within this batch
+          if (!image.url.startsWith('data:')) {
+            usedImages.add(image.url);
+          }
 
           results.updated++;
           results.details.push({
