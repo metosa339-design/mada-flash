@@ -101,70 +101,201 @@ export async function getRecentlyUsedImages(): Promise<Set<string>> {
   }
 }
 
-// Extract keywords from text for image search - Version améliorée
+// Extract keywords from text for image search - Version améliorée avec thèmes étendus
 export function extractKeywords(title: string, summary?: string, category?: string): string {
   const text = `${title} ${summary || ''}`.toLowerCase();
 
-  // 1. Si on a une catégorie, utiliser les termes optimisés pour cette catégorie
-  if (category && CATEGORY_IMAGE_TERMS[category]) {
-    const categoryTerms = CATEGORY_IMAGE_TERMS[category];
-    // Ajouter un terme Madagascar si pertinent
-    const randomCategoryTerm = categoryTerms[Math.floor(Math.random() * categoryTerms.length)];
-    return `${randomCategoryTerm} madagascar`;
-  }
+  // 1. PRIORITÉ: Détection de thèmes spécifiques dans le contenu de l'article
+  // Ordre important: les thèmes les plus spécifiques en premier
+  const themeKeywords: Record<string, string[]> = {
+    // === ACCIDENTS & FAITS DIVERS ===
+    'accident': ['car accident crash', 'traffic accident road', 'vehicle crash emergency'],
+    'collision': ['car collision accident', 'vehicle crash road'],
+    'renversé': ['car accident overturned', 'traffic accident'],
+    'véhicule': ['vehicle car road', 'automobile traffic'],
+    'voiture': ['car automobile vehicle', 'traffic road driving'],
+    'moto': ['motorcycle accident', 'motorbike road'],
+    'taxi': ['taxi cab car', 'transportation vehicle'],
+    'bus': ['bus public transport', 'bus accident'],
+    'camion': ['truck vehicle road', 'lorry transport'],
+    'blessé': ['injured hospital emergency', 'medical emergency ambulance'],
+    'mort': ['funeral mourning', 'cemetery memorial'],
+    'décès': ['funeral memorial', 'mourning ceremony'],
+    'victime': ['victim emergency help', 'rescue emergency'],
+    'urgence': ['emergency ambulance hospital', 'emergency rescue'],
+    'hôpital': ['hospital medical healthcare', 'medical building'],
+    'ambulance': ['ambulance emergency medical', 'emergency vehicle'],
 
-  // 2. Détection de thèmes spécifiques dans le titre
-  const themeKeywords: Record<string, string> = {
-    // Sport
-    'barea': 'football madagascar team',
-    'football': 'soccer match stadium',
-    'sport': 'sports competition africa',
-    'match': 'football stadium game',
-    'can': 'african cup nations football',
+    // === SÉCURITÉ & CRIME ===
+    'police': ['police officer security', 'police car law enforcement'],
+    'gendarmerie': ['gendarme police military', 'law enforcement security'],
+    'gendarme': ['gendarme military police', 'security officer'],
+    'vol': ['theft robbery crime', 'stolen property police'],
+    'voleur': ['thief burglar crime', 'criminal arrest'],
+    'cambriolage': ['burglary theft crime', 'break in robbery'],
+    'agression': ['assault attack crime', 'violence crime'],
+    'arrestation': ['arrest police handcuffs', 'police detention'],
+    'prison': ['prison jail cell', 'correctional facility'],
+    'tribunal': ['court justice trial', 'courthouse law'],
+    'justice': ['justice court gavel', 'courthouse trial'],
+    'crime': ['crime scene police', 'criminal investigation'],
+    'meurtre': ['crime scene investigation', 'police tape'],
+    'drogue': ['drugs narcotics police', 'drug seizure'],
+    'incendie': ['fire flames burning', 'firefighter emergency'],
+    'feu': ['fire flames smoke', 'burning building'],
+    'pompier': ['firefighter fire truck', 'fire emergency'],
+    'noyade': ['drowning water rescue', 'water emergency'],
+    'inondation': ['flood water disaster', 'flooding rain'],
 
-    // Politique
-    'président': 'president government africa',
-    'gouvernement': 'government building politics',
-    'ministre': 'minister meeting official',
-    'élection': 'election voting democracy',
-    'assemblée': 'parliament assembly politics',
+    // === POLITIQUE ===
+    'président': ['president government official', 'political leader speech'],
+    'gouvernement': ['government building official', 'politics ministry'],
+    'ministre': ['minister official meeting', 'government politician'],
+    'premier ministre': ['prime minister government', 'political leader'],
+    'élection': ['election voting ballot', 'democracy vote'],
+    'vote': ['voting ballot election', 'democracy polling'],
+    'assemblée': ['parliament assembly politics', 'national assembly'],
+    'sénat': ['senate parliament politics', 'senate chamber'],
+    'député': ['parliament politician assembly', 'deputy elected'],
+    'maire': ['mayor city hall', 'municipal government'],
+    'commune': ['town hall municipality', 'local government'],
+    'manifestation': ['protest demonstration crowd', 'march rally'],
+    'grève': ['strike protest workers', 'labor union'],
 
-    // Économie
-    'économie': 'economy business africa',
-    'ariary': 'currency money finance',
-    'banque': 'bank finance building',
-    'commerce': 'market trade business',
-    'investissement': 'investment business growth',
+    // === ÉCONOMIE & FINANCE ===
+    'économie': ['economy business graph', 'economic growth chart'],
+    'ariary': ['currency money finance', 'madagascar money'],
+    'banque': ['bank finance building', 'banking money'],
+    'commerce': ['market trade business', 'shop store'],
+    'marché': ['market trading commerce', 'marketplace vendor'],
+    'investissement': ['investment business growth', 'finance money'],
+    'entreprise': ['company business office', 'corporate building'],
+    'emploi': ['job work employment', 'career workplace'],
+    'chômage': ['unemployment job search', 'unemployed worker'],
+    'prix': ['price tag market', 'shopping cost'],
+    'inflation': ['money inflation economy', 'price increase'],
+    'export': ['export shipping container', 'trade port'],
+    'import': ['import shipping cargo', 'container port'],
+    'riz': ['rice field agriculture', 'rice farming paddy'],
+    'vanille': ['vanilla plantation spice', 'vanilla beans'],
+    'café': ['coffee plantation beans', 'coffee harvest'],
 
-    // Société
-    'santé': 'health hospital medical',
-    'éducation': 'education school students',
-    'école': 'school classroom education',
-    'université': 'university campus students',
+    // === SPORT ===
+    'barea': ['football team madagascar', 'soccer national team'],
+    'football': ['soccer match stadium', 'football game'],
+    'basket': ['basketball game sport', 'basketball court'],
+    'rugby': ['rugby match sport', 'rugby game'],
+    'athlétisme': ['athletics running track', 'olympic sport'],
+    'boxe': ['boxing ring fight', 'boxer sport'],
+    'judo': ['judo martial arts', 'judo competition'],
+    'tennis': ['tennis court sport', 'tennis match'],
+    'match': ['sports match game', 'competition stadium'],
+    'champion': ['champion trophy winner', 'sports victory'],
+    'médaille': ['medal winner sports', 'gold medal'],
+    'olympique': ['olympic games sports', 'olympic rings'],
 
-    // Environnement
-    'cyclone': 'tropical storm weather',
-    'environnement': 'nature environment green',
-    'climat': 'climate weather nature',
-    'forêt': 'forest tropical trees',
+    // === ÉDUCATION ===
+    'éducation': ['education school classroom', 'students learning'],
+    'école': ['school classroom students', 'primary school'],
+    'lycée': ['high school students', 'secondary school'],
+    'université': ['university campus students', 'college education'],
+    'étudiant': ['student university campus', 'young student'],
+    'enseignant': ['teacher classroom education', 'teaching school'],
+    'professeur': ['professor university teacher', 'education classroom'],
+    'examen': ['exam test students', 'examination hall'],
+    'baccalauréat': ['graduation exam students', 'high school diploma'],
+    'diplôme': ['diploma graduation ceremony', 'graduate certificate'],
 
-    // Transport
-    'route': 'road highway infrastructure',
-    'avion': 'airplane airport aviation',
-    'transport': 'transportation vehicle road',
+    // === SANTÉ ===
+    'santé': ['health medical hospital', 'healthcare doctor'],
+    'médecin': ['doctor medical hospital', 'physician healthcare'],
+    'maladie': ['illness disease hospital', 'sick patient'],
+    'covid': ['covid coronavirus vaccine', 'pandemic mask'],
+    'vaccin': ['vaccine injection medical', 'vaccination syringe'],
+    'épidémie': ['epidemic disease outbreak', 'health emergency'],
+    'clinique': ['clinic medical healthcare', 'health center'],
+    'pharmacie': ['pharmacy medicine drugs', 'drugstore'],
+    'médicament': ['medicine pills pharmacy', 'medication'],
 
-    // Tourisme
-    'tourisme': 'tourism travel madagascar',
-    'plage': 'beach tropical paradise',
-    'parc': 'national park wildlife',
-    'lémuriens': 'lemur madagascar wildlife'
+    // === ENVIRONNEMENT & MÉTÉO ===
+    'cyclone': ['tropical storm hurricane', 'cyclone damage'],
+    'tempête': ['storm weather disaster', 'severe weather'],
+    'pluie': ['rain weather storm', 'rainy season'],
+    'sécheresse': ['drought dry land', 'water shortage'],
+    'environnement': ['environment nature green', 'ecology'],
+    'climat': ['climate weather nature', 'climate change'],
+    'forêt': ['forest trees jungle', 'tropical forest'],
+    'déforestation': ['deforestation logging trees', 'forest destruction'],
+    'pollution': ['pollution environment smog', 'air pollution'],
+    'reboisement': ['reforestation planting trees', 'tree planting'],
+
+    // === INFRASTRUCTURE & TRANSPORT ===
+    'route': ['road highway infrastructure', 'road construction'],
+    'pont': ['bridge infrastructure construction', 'bridge crossing'],
+    'aéroport': ['airport airplane aviation', 'airport terminal'],
+    'avion': ['airplane aircraft aviation', 'flight airplane'],
+    'port': ['port harbor ships', 'maritime shipping'],
+    'train': ['train railway station', 'railroad'],
+    'électricité': ['electricity power grid', 'electrical tower'],
+    'jirama': ['electricity power utility', 'power plant'],
+    'eau': ['water supply tap', 'water treatment'],
+    'construction': ['construction building site', 'construction workers'],
+
+    // === CULTURE & RELIGION ===
+    'culture': ['culture festival traditional', 'cultural event'],
+    'musique': ['music concert performance', 'musical instrument'],
+    'concert': ['concert music stage', 'live performance'],
+    'artiste': ['artist performer musician', 'creative artist'],
+    'cinéma': ['cinema movie film', 'movie theater'],
+    'théâtre': ['theater stage performance', 'drama'],
+    'église': ['church religion christian', 'church building'],
+    'mosquée': ['mosque islam religion', 'islamic architecture'],
+    'fête': ['celebration festival party', 'festive event'],
+    'mariage': ['wedding marriage ceremony', 'bride groom'],
+    'funérailles': ['funeral ceremony mourning', 'burial'],
+
+    // === TOURISME ===
+    'tourisme': ['tourism travel beach', 'tourist destination'],
+    'touriste': ['tourist travel vacation', 'tourism'],
+    'hôtel': ['hotel accommodation resort', 'hotel building'],
+    'plage': ['beach ocean tropical', 'sandy beach'],
+    'parc national': ['national park wildlife', 'nature reserve'],
+    'lémuriens': ['lemur madagascar wildlife', 'ring tailed lemur'],
+    'baobab': ['baobab tree madagascar', 'baobab avenue'],
+
+    // === AGRICULTURE ===
+    'agriculture': ['agriculture farming field', 'farm harvest'],
+    'agriculteur': ['farmer agriculture farming', 'rural farmer'],
+    'récolte': ['harvest farming agriculture', 'crop harvest'],
+    'élevage': ['livestock cattle farm', 'animal farming'],
+    'pêche': ['fishing boat fisherman', 'fish catch'],
+    'zébu': ['zebu cattle madagascar', 'zebu ox'],
+
+    // === SOCIAL ===
+    'pauvreté': ['poverty poor homeless', 'poverty africa'],
+    'aide': ['humanitarian aid help', 'charity assistance'],
+    'ong': ['ngo humanitarian charity', 'aid organization'],
+    'enfant': ['children kids school', 'child africa'],
+    'femme': ['woman women empowerment', 'african woman'],
+    'jeune': ['youth young people', 'teenagers africa']
   };
 
-  // Chercher un thème correspondant
-  for (const [keyword, searchTerm] of Object.entries(themeKeywords)) {
+  // Chercher un thème correspondant dans le texte (titre + résumé)
+  for (const [keyword, searchTerms] of Object.entries(themeKeywords)) {
     if (text.includes(keyword)) {
-      return searchTerm;
+      // Sélectionner aléatoirement parmi les termes pour plus de variété
+      const randomTerm = searchTerms[Math.floor(Math.random() * searchTerms.length)];
+      console.log(`Theme detected: "${keyword}" -> search: "${randomTerm}"`);
+      return randomTerm;
     }
+  }
+
+  // 2. Si pas de thème trouvé mais catégorie disponible, utiliser les termes de catégorie
+  if (category && CATEGORY_IMAGE_TERMS[category]) {
+    const categoryTerms = CATEGORY_IMAGE_TERMS[category];
+    const randomCategoryTerm = categoryTerms[Math.floor(Math.random() * categoryTerms.length)];
+    console.log(`Category fallback: "${category}" -> search: "${randomCategoryTerm}"`);
+    return randomCategoryTerm;
   }
 
   // 3. Fallback: extraire les mots significatifs du titre
@@ -172,16 +303,19 @@ export function extractKeywords(title: string, summary?: string, category?: stri
     .toLowerCase()
     .replace(/[^\w\sàâäéèêëïîôùûüÿçœæ-]/g, '')
     .split(/\s+/)
-    .filter(w => w.length > 3 && !STOP_WORDS.has(w))
-    .slice(0, 2);
+    .filter(w => w.length > 4 && !STOP_WORDS.has(w))
+    .slice(0, 3);
 
   if (words.length > 0) {
-    // Ajouter "madagascar" ou "africa" pour contextualiser
-    return `${words.join(' ')} madagascar africa`;
+    // Essayer de traduire en anglais si possible pour de meilleurs résultats
+    const searchQuery = `${words.join(' ')} africa news`;
+    console.log(`Word extraction fallback: "${searchQuery}"`);
+    return searchQuery;
   }
 
   // 4. Dernier fallback: image générique de Madagascar
   const fallbackTerms = MADAGASCAR_TERMS[Math.floor(Math.random() * MADAGASCAR_TERMS.length)];
+  console.log(`Final fallback: "${fallbackTerms}"`);
   return `${fallbackTerms} nature`;
 }
 
