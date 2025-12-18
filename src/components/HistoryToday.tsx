@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, MapPin, Clock, ChevronDown, ChevronUp, Flag, History } from 'lucide-react';
+import { Calendar, Flag, History, Sparkles } from 'lucide-react';
 
 interface HistoricalEvent {
   id: string;
@@ -29,20 +29,19 @@ interface HistoryData {
 export default function HistoryToday() {
   const [data, setData] = useState<HistoryData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isExpanded, setIsExpanded] = useState(false);
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
 
   useEffect(() => {
     fetchTodayHistory();
   }, []);
 
-  // Auto-rotate events every 8 seconds
+  // Auto-rotate events every 6 seconds
   useEffect(() => {
     if (!data || data.events.length <= 1) return;
 
     const interval = setInterval(() => {
       setCurrentEventIndex((prev) => (prev + 1) % data.events.length);
-    }, 8000);
+    }, 6000);
 
     return () => clearInterval(interval);
   }, [data]);
@@ -66,9 +65,9 @@ export default function HistoryToday() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-3 text-white animate-pulse">
-        <div className="w-8 h-8 bg-white/20 rounded-full"></div>
-        <div className="h-4 bg-white/20 rounded w-64"></div>
+      <div className="flex items-center justify-center gap-2 py-2 text-white/80 animate-pulse">
+        <History className="w-4 h-4" />
+        <span className="text-sm">Chargement...</span>
       </div>
     );
   }
@@ -80,131 +79,109 @@ export default function HistoryToday() {
   const currentEvent = data.events[currentEventIndex];
 
   return (
-    <div className="text-white">
-      {/* Banner compact */}
-      <div
-        className="flex items-center gap-4 cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        {/* Icon */}
-        <div className="flex-shrink-0 p-2 bg-white/20 rounded-full">
-          <History className="w-5 h-5" />
+    <div className="relative overflow-hidden">
+      {/* Ticker Banner */}
+      <div className="flex items-center gap-3 py-2">
+        {/* Label fixe */}
+        <div className="flex-shrink-0 flex items-center gap-2 bg-white/20 backdrop-blur px-3 py-1.5 rounded-full">
+          <Sparkles className="w-4 h-4 text-yellow-300" />
+          <span className="text-sm font-bold text-white whitespace-nowrap">
+            Ce jour dans l'histoire
+          </span>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-medium bg-white/20 px-2 py-0.5 rounded-full">
-              {data.date.formatted}
+        {/* Séparateur */}
+        <div className="w-px h-6 bg-white/30"></div>
+
+        {/* Contenu défilant */}
+        <div className="flex-1 overflow-hidden">
+          <div
+            key={currentEventIndex}
+            className="flex items-center gap-3 animate-fade-in"
+          >
+            {/* Badge année */}
+            <span className="flex-shrink-0 bg-white text-amber-600 font-bold text-sm px-2.5 py-1 rounded-full">
+              {currentEvent.year}
             </span>
+
+            {/* Badge Madagascar si applicable */}
             {currentEvent.isMadagascar && (
-              <span className="text-xs font-medium bg-green-500 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <span className="flex-shrink-0 bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
                 <Flag className="w-3 h-3" />
                 Madagascar
               </span>
             )}
-            <span className="text-xs opacity-75">
-              Il y a {calculateYearsAgo(currentEvent.year)} ans ({currentEvent.year})
+
+            {/* Titre de l'événement */}
+            <span className="text-white font-medium truncate">
+              {currentEvent.title}
+            </span>
+
+            {/* Info temps */}
+            <span className="flex-shrink-0 text-white/70 text-sm whitespace-nowrap">
+              (il y a {calculateYearsAgo(currentEvent.year)} ans)
             </span>
           </div>
-          <p className="font-semibold truncate mt-1">
-            {currentEvent.title}
-          </p>
         </div>
 
-        {/* Navigation dots */}
+        {/* Indicateur de progression */}
         {data.events.length > 1 && (
-          <div className="flex gap-1 mx-2">
+          <div className="flex-shrink-0 flex items-center gap-1">
             {data.events.map((_, idx) => (
               <button
                 key={idx}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCurrentEventIndex(idx);
-                }}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  idx === currentEventIndex ? 'bg-white w-4' : 'bg-white/40'
+                onClick={() => setCurrentEventIndex(idx)}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  idx === currentEventIndex
+                    ? 'bg-white w-6'
+                    : 'bg-white/40 hover:bg-white/60'
                 }`}
+                aria-label={`Événement ${idx + 1}`}
               />
             ))}
           </div>
         )}
-
-        {/* Expand button */}
-        <button className="flex-shrink-0 p-1 hover:bg-white/20 rounded-full transition-colors">
-          {isExpanded ? (
-            <ChevronUp className="w-5 h-5" />
-          ) : (
-            <ChevronDown className="w-5 h-5" />
-          )}
-        </button>
       </div>
 
-      {/* Expanded view */}
-      {isExpanded && (
-        <div className="mt-4 bg-white/10 backdrop-blur rounded-xl p-4 animate-in slide-in-from-top duration-300">
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {data.events.map((event, idx) => (
-              <article
-                key={event.id}
-                className={`p-3 rounded-lg transition-all cursor-pointer ${
-                  idx === currentEventIndex
-                    ? 'bg-white text-gray-900'
-                    : 'bg-white/10 hover:bg-white/20'
-                }`}
-                onClick={() => setCurrentEventIndex(idx)}
-              >
-                {/* Header */}
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                    idx === currentEventIndex
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-white/20'
-                  }`}>
-                    {event.year}
-                  </span>
-                  {event.isMadagascar && (
-                    <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                      idx === currentEventIndex
-                        ? 'bg-green-500 text-white'
-                        : 'bg-green-500/50'
-                    }`}>
-                      <Flag className="w-3 h-3" />
-                    </span>
-                  )}
-                </div>
+      {/* Barre de progression animée */}
+      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20">
+        <div
+          key={`progress-${currentEventIndex}`}
+          className="h-full bg-white/60 animate-progress"
+          style={{ animationDuration: '6s' }}
+        ></div>
+      </div>
 
-                {/* Title */}
-                <h3 className="font-semibold text-sm mb-1 line-clamp-2">
-                  {event.title}
-                </h3>
+      {/* Styles pour les animations */}
+      <style jsx>{`
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
 
-                {/* Description */}
-                <p className={`text-xs line-clamp-2 ${
-                  idx === currentEventIndex ? 'text-gray-600' : 'opacity-75'
-                }`}>
-                  {event.description}
-                </p>
+        @keyframes progress {
+          from {
+            width: 0%;
+          }
+          to {
+            width: 100%;
+          }
+        }
 
-                {/* Location */}
-                {event.location && (
-                  <div className={`flex items-center gap-1 mt-2 text-xs ${
-                    idx === currentEventIndex ? 'text-gray-500' : 'opacity-60'
-                  }`}>
-                    <MapPin className="w-3 h-3" />
-                    {event.location}
-                  </div>
-                )}
-              </article>
-            ))}
-          </div>
+        .animate-fade-in {
+          animation: fade-in 0.5s ease-out forwards;
+        }
 
-          {/* Footer */}
-          <div className="mt-3 pt-3 border-t border-white/20 text-center text-xs opacity-75">
-            {data.count} événement{data.count > 1 ? 's' : ''} historique{data.count > 1 ? 's' : ''} ce {data.date.formatted}
-          </div>
-        </div>
-      )}
+        .animate-progress {
+          animation: progress linear forwards;
+        }
+      `}</style>
     </div>
   );
 }
