@@ -54,6 +54,166 @@ const STOP_WORDS = new Set([
   'après', 'avant', 'depuis', 'pendant', 'encore', 'déjà', 'alors'
 ]);
 
+// Mots malgaches courants pour détecter si le texte est en malgache
+const MALAGASY_INDICATORS = [
+  // Mots courants malgaches
+  'ny', 'sy', 'ary', 'fa', 'izay', 'tsy', 'dia', 'ho', 'amin', 'tamin',
+  'efa', 'mbola', 'misy', 'manana', 'mahazo', 'mahita', 'manao', 'miteny',
+  'olona', 'trano', 'taona', 'andro', 'volana', 'herinandro', 'ora',
+  'firenena', 'governemanta', 'minisitra', 'filoha', 'vahoaka',
+  // Mots spécifiques souvent dans les news
+  'jiolahy', 'mpangalatra', 'heloka', 'vonjy', 'loza', 'afo', 'rano',
+  'lalana', 'fiara', 'lozam-pifamoivoizana', 'hopitaly', 'dokotera',
+  'fizaham-pahasalamana', 'fitsaboana', 'fanafody', 'aretina', 'maty',
+  'naratra', 'maratra', 'voasambotra', 'gadra', 'fitsarana',
+  'polisy', 'zandary', 'miaramila', 'sekoly', 'mpianatra', 'mpampianatra',
+  'vola', 'ariary', 'vidiny', 'varotra', 'fivarotana', 'tsenam-bokatra',
+  'mpanao politika', 'fifidianana', 'vato', 'solombavambahoaka',
+  'vary', 'voankazo', 'legioma', 'omby', 'akoho', 'trondro',
+  'toetr\'andro', 'orana', 'rivo-doza', 'tondra-drano', 'hain-tany',
+  'tanimbary', 'tanimboly', 'ala', 'tontolo iainana'
+];
+
+// Cache pour les traductions (évite les appels API répétés)
+const translationCache = new Map<string, string>();
+
+// Fonction pour détecter si le texte contient des mots malgaches
+function containsMalagasyWords(text: string): boolean {
+  const lowerText = text.toLowerCase();
+  const malagasyCount = MALAGASY_INDICATORS.filter(word =>
+    lowerText.includes(word.toLowerCase())
+  ).length;
+  // Si au moins 2 mots malgaches sont détectés, considérer comme malgache
+  return malagasyCount >= 2;
+}
+
+// Traduire le texte malgache en mots-clés anglais pour la recherche d'images avec Gemini
+async function translateMalagasyWithGemini(title: string, summary: string): Promise<string | null> {
+  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+
+  if (!apiKey) {
+    console.log('Gemini API key not configured for translation');
+    return null;
+  }
+
+  // Vérifier le cache
+  const cacheKey = `${title}_${summary.substring(0, 100)}`;
+  if (translationCache.has(cacheKey)) {
+    console.log('Using cached translation');
+    return translationCache.get(cacheKey)!;
+  }
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Tu es un expert en langue malgache et en recherche d'images. Analyse ce titre et résumé d'article de news de Madagascar et retourne UNIQUEMENT 3-5 mots-clés en anglais pour rechercher une image appropriée sur Pixabay/Pexels.
+
+Titre: "${title}"
+Résumé: "${summary}"
+
+EXEMPLES DE MOTS-CLÉS PAR THÈME:
+
+🏛️ POLITIQUE & GOUVERNANCE:
+- Militaire/Colonel/Armée → "military leader beret, army commander, soldier uniform"
+- Manifestation/Gen Z/Pirates → "protest crowd, youth activism, street demonstration"
+- Président/Politique → "politician office, presidential palace, official ceremony"
+- Union Africaine/SADC/Diplomatie → "diplomacy meeting, international summit Africa, handshake official"
+- Église/FFKM/Religieux → "church cathedral, religious leaders, group prayer"
+- Tribunal/Justice → "courthouse gavel, justice trial, legal court"
+
+💰 ÉCONOMIE & FINANCES:
+- Inflation/Ariary/Prix → "malagasy money, market prices, financial crisis, empty wallet"
+- Mine/Nickel/Graphite → "mining excavator, industrial pit, heavy machinery"
+- Vanille/SAVA → "vanilla beans, spice plantation, farmer harvest"
+- Émeraudes/Pierres → "emerald gemstone, raw crystal, mineral treasure"
+- Investissement/Dubaï → "skyscraper city, business deal, investor handshake"
+- Exportation/Commerce → "shipping container, trade port, cargo export"
+
+⚡ ÉNERGIE & INFRASTRUCTURES:
+- Délestage/Jirama/Électricité → "blackout city night, candlelight, power outage, electric pylon"
+- Eau/Bidons → "yellow jerrycan, water pump village, queue water Africa"
+- Train/Transport → "train station, urban railway, commuter transport"
+- Route/RN7/Potholes → "damaged road, mud road truck, potholes highway"
+- Barrage/Hydroélectrique → "dam river, hydroelectric power, renewable electricity"
+
+🆘 SOCIAL & SANTÉ:
+- Kere/Sécheresse/Famine → "drought landscape, dry cracked earth, humanitarian aid"
+- Numérique/Starlink/Internet → "laptop university, satellite dish, digital education"
+- Insécurité/Kidnapping/Dahalo → "police patrol, security guard, rural safety, dark woods"
+- Hôpital/Médecin/Santé → "doctor hospital, medical clinic, healthcare nurse"
+- Vaccination/Institut Pasteur → "vaccination child, medical research, laboratory scientist"
+
+🌴 ENVIRONNEMENT & TOURISME:
+- Tourisme/ITM/Hôtel → "luxury resort beach, tourism tropical, paradise island"
+- Lémuriens/Faune → "lemur eyes wildlife, rainforest animal, baobab forest"
+- Plage/Nosy Be → "palm tree beach, turquoise ocean, white sand paradise"
+- Cyclone/Tempête → "storm clouds, tropical rain, flood street, heavy wind"
+- Reboisement/Forêt → "planting saplings, reforestation volunteers, green forest"
+- Mangrove/Économie bleue → "mangrove forest, coastal conservation, marine ecosystem"
+
+🏀 SPORT & CULTURE:
+- Basketball/Ankoay → "basketball dunk, team victory, sports competition"
+- Football/Barea → "soccer stadium, football fans, soccer goal"
+- Musique/Festival → "traditional music, concert stage, cultural festival"
+- Art/Exposition → "art gallery, painting canvas, museum exhibition"
+
+🐄 AGRICULTURE:
+- Zébu/Élevage → "zebu Madagascar, cattle farm, livestock agriculture"
+- Riz/Tanimbary → "rice paddy field, farmer planting, agriculture harvest"
+- Pêche/Poulpe → "octopus fishing, fisherman boat, seafood market"
+
+🔒 SÉCURITÉ & CRIME:
+- Vol/Jiolahy/Mpangalatra → "thief robbery crime, police arrest, handcuffs criminal"
+- Police/Gendarmerie → "police officer uniform, law enforcement, security patrol"
+- Prison/Gadra → "prison cell bars, correctional facility, jail"
+- Accident/Loza → "car accident crash, traffic emergency, ambulance rescue"
+- Incendie/Afo → "fire flames burning, firefighter emergency, smoke"
+- Meurtre/Crime → "crime scene police, investigation, police tape"
+
+Retourne UNIQUEMENT les mots-clés anglais les plus pertinents (3-5 mots), sans explication, sans guillemets, sans ponctuation finale.`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 60
+          }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      console.error('Gemini translation API error:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+
+    if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      const translatedKeywords = data.candidates[0].content.parts[0].text
+        .trim()
+        .replace(/[."'\n]/g, '')
+        .toLowerCase();
+
+      console.log(`Malagasy translation: "${title.substring(0, 40)}..." → "${translatedKeywords}"`);
+
+      // Mettre en cache
+      translationCache.set(cacheKey, translatedKeywords);
+
+      return translatedKeywords;
+    }
+  } catch (error) {
+    console.error('Gemini translation error:', error);
+  }
+
+  return null;
+}
+
 // Mapping catégorie -> termes de recherche Pixabay optimisés
 const CATEGORY_IMAGE_TERMS: Record<string, string[]> = {
   politique: ['government building', 'politics africa', 'parliament', 'meeting official'],
@@ -101,9 +261,19 @@ export async function getRecentlyUsedImages(): Promise<Set<string>> {
   }
 }
 
-// Extract keywords from text for image search - Version améliorée avec thèmes étendus
-export function extractKeywords(title: string, summary?: string, category?: string): string {
+// Extract keywords from text for image search - Version améliorée avec traduction malgache
+export async function extractKeywords(title: string, summary?: string, category?: string): Promise<string> {
   const text = `${title} ${summary || ''}`.toLowerCase();
+
+  // 0. PRIORITÉ MAXIMALE: Si le texte contient des mots malgaches, utiliser Gemini pour traduire
+  if (containsMalagasyWords(text)) {
+    console.log('Malagasy content detected, using Gemini for translation...');
+    const translatedKeywords = await translateMalagasyWithGemini(title, summary || '');
+    if (translatedKeywords) {
+      return translatedKeywords;
+    }
+    // Si la traduction échoue, continuer avec la détection de thèmes classique
+  }
 
   // 1. PRIORITÉ: Détection de thèmes spécifiques dans le contenu de l'article
   // Ordre important: les thèmes les plus spécifiques en premier
@@ -579,8 +749,8 @@ export async function searchImage(
   forceAI: boolean = false,
   excludeUrls?: Set<string>
 ): Promise<ImageResult | null> {
-  // Extract search keywords
-  const searchQuery = extractKeywords(title, summary, category);
+  // Extract search keywords (now async to support Malagasy translation)
+  const searchQuery = await extractKeywords(title, summary, category);
 
   console.log(`Image search: title="${title.substring(0, 50)}...", category="${category}", query="${searchQuery}"`);
 

@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Extract search keywords
-  const keywords = extractKeywords(title, summary);
+  // Extract search keywords (async to support Malagasy translation)
+  const keywords = await extractKeywords(title, summary);
 
   // Get recently used images to avoid duplicates
   const usedImages = await getRecentlyUsedImages();
@@ -86,8 +86,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extraire les mots-clés optimisés pour la recherche d'images
-    const searchQuery = extractKeywords(title, summary, category);
+    // Extraire les mots-clés optimisés pour la recherche d'images (async pour traduction malgache)
+    const searchQuery = await extractKeywords(title, summary, category);
 
     console.log(`Image search: title="${title.substring(0, 50)}...", category="${category}", query="${searchQuery}"`);
 
