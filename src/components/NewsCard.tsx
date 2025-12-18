@@ -88,13 +88,14 @@ export default function NewsCard({ article, variant = 'default', index = 0, onCl
     // Éviter les doubles requêtes
     if (hasFetched.current) return;
 
-    // PRIORITÉ 3: Générer une nouvelle image AI car pas d'image en DB
-    const generateAiImage = async () => {
+    // PRIORITÉ 3: Chercher une image gratuite (Pixabay/Pexels/Unsplash) puis AI si nécessaire
+    const fetchFreeImage = async () => {
       hasFetched.current = true;
       setIsLoading(true);
 
       try {
-        const response = await fetch('/api/generate-image', {
+        // Utiliser la nouvelle API qui cherche d'abord les images gratuites
+        const response = await fetch('/api/images/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -105,13 +106,30 @@ export default function NewsCard({ article, variant = 'default', index = 0, onCl
         });
 
         const data = await response.json();
-        if (data.success && data.imageUrl) {
-          setImageUrl(data.imageUrl);
-          // Sauvegarder dans le cache avec dbImageUrl = null (généré, pas en DB)
-          imageCache.set(cacheKey, { url: data.imageUrl, dbImageUrl: null });
+        if (data.success && data.image?.url) {
+          setImageUrl(data.image.url);
+          // Sauvegarder dans le cache avec dbImageUrl = null (pas en DB)
+          imageCache.set(cacheKey, { url: data.image.url, dbImageUrl: null });
+        } else {
+          // Fallback à l'ancienne API de génération AI si la nouvelle échoue
+          const aiResponse = await fetch('/api/generate-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: article.title,
+              summary: article.summary,
+              category: article.category
+            })
+          });
+
+          const aiData = await aiResponse.json();
+          if (aiData.success && aiData.imageUrl) {
+            setImageUrl(aiData.imageUrl);
+            imageCache.set(cacheKey, { url: aiData.imageUrl, dbImageUrl: null });
+          }
         }
       } catch (error) {
-        console.error('AI image generation failed:', error);
+        console.error('Image fetch failed:', error);
         // Garder le placeholder en cas d'erreur
         setImageUrl(PLACEHOLDER_IMAGE);
       } finally {
@@ -119,9 +137,9 @@ export default function NewsCard({ article, variant = 'default', index = 0, onCl
       }
     };
 
-    // Lancer la génération avec un petit délai pour éviter trop de requêtes simultanées
+    // Lancer la recherche d'image avec un petit délai pour éviter trop de requêtes simultanées
     const delay = index * 150; // Échelonner les requêtes (150ms entre chaque)
-    const timeoutId = setTimeout(generateAiImage, delay);
+    const timeoutId = setTimeout(fetchFreeImage, delay);
 
     return () => clearTimeout(timeoutId);
   }, [article.id, article.title, article.summary, article.category, article.imageUrl, index]);

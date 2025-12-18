@@ -183,14 +183,16 @@ export default function Footer() {
             </div>
             <div className="border-t border-white/10 pt-3">
               <strong className="text-gray-400">Droits d'auteur :</strong> Toutes les images, photos et contenus visuels
-              utilisés sur ce site appartiennent à leurs auteurs et propriétaires respectifs. Les images provenant des
-              articles originaux restent la propriété exclusive de leurs sources. En cas de réclamation, veuillez nous
+              utilisés sur ce site appartiennent à leurs auteurs et propriétaires respectifs. En cas de réclamation, veuillez nous
               contacter à <a href="mailto:contact@mada-flash.mg" className="text-[#ff6b35] hover:underline">contact@mada-flash.mg</a>.
             </div>
             <div className="border-t border-white/10 pt-3">
-              <strong className="text-gray-400">Images générées :</strong> Certaines images d'illustration sont
-              générées par intelligence artificielle (Google Gemini AI) à des fins d'illustration éditoriale uniquement.
-              Ces images ne représentent pas des personnes réelles.
+              <strong className="text-gray-400">Sources d'images :</strong> Les images d'illustration proviennent de banques d'images
+              libres de droits :{' '}
+              <a href="https://pixabay.com/fr/" target="_blank" rel="noopener noreferrer" className="text-[#ff6b35] hover:underline">Pixabay</a>,{' '}
+              <a href="https://www.pexels.com/fr-fr/" target="_blank" rel="noopener noreferrer" className="text-[#ff6b35] hover:underline">Pexels</a>,{' '}
+              <a href="https://unsplash.com/" target="_blank" rel="noopener noreferrer" className="text-[#ff6b35] hover:underline">Unsplash</a>.
+              Certaines images peuvent être générées par intelligence artificielle (Google Gemini AI) à des fins d'illustration uniquement.
             </div>
           </div>
         </div>
