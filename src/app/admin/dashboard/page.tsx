@@ -470,11 +470,11 @@ export default function AdminDashboard() {
         // Vider le cache des images pour forcer le rechargement
         aiImageCache.clear();
       } else {
-        alert('Erreur lors de la mise à jour des images');
+        alert(data.error || 'Erreur lors de la mise à jour des images');
       }
     } catch (error) {
       console.error('Error updating images:', error);
-      alert('Erreur lors de la mise à jour des images');
+      alert(`Erreur: ${error instanceof Error ? error.message : 'Erreur réseau'}`);
     } finally {
       setIsUpdatingImages(false);
     }

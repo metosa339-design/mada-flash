@@ -153,8 +153,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error updating images:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { success: false, error: 'Erreur lors de la mise à jour des images' },
+      { success: false, error: `Erreur: ${errorMessage}` },
       { status: 500 }
     );
   }
