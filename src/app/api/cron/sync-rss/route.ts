@@ -73,6 +73,20 @@ const RSS_SOURCES = [
 // Categories prioritaires
 const PRIORITY_CATEGORIES = ['politique', 'societe'];
 
+// Mots-clés à bloquer (nécrologie, décès, etc.)
+const BLOCKED_KEYWORDS = [
+  'nécrologie', 'necrologie', 'décès', 'deces', 'décédé', 'decede',
+  'mort de', 'obsèques', 'obseques', 'funérailles', 'funerailles',
+  'enterrement', 'inhumation', 'hommage posthume', 'disparition de',
+  'nous quitte', 'a rendu l\'âme', 'dernier adieu', 'repose en paix'
+];
+
+// Fonction pour vérifier si un article doit être bloqué
+function shouldBlockArticle(title: string, summary: string): boolean {
+  const text = `${title} ${summary}`.toLowerCase();
+  return BLOCKED_KEYWORDS.some(keyword => text.includes(keyword.toLowerCase()));
+}
+
 // Simple XML parser for RSS feeds
 function parseXML(xml: string): RSSItem[] {
   const items: RSSItem[] = [];
@@ -384,6 +398,12 @@ async function syncRSSFeeds() {
 
   for (const article of allArticles) {
     try {
+      // Bloquer les articles de nécrologie
+      if (shouldBlockArticle(article.title, article.summary)) {
+        console.log(`[CRON RSS] Bloqué (nécrologie): "${article.title.substring(0, 40)}..."`);
+        continue;
+      }
+
       // Check if already exists
       const existing = await prisma.article.findFirst({
         where: { sourceUrl: article.sourceUrl }
