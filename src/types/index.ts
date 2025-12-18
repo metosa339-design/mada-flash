@@ -21,6 +21,7 @@ export interface NewsArticle {
   publishedAt: Date;
   isBreaking: boolean;
   isLive: boolean;
+  isFeatured: boolean;  // Article à la une
   readTime: number;
   views: number;
   tags: string[];

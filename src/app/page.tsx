@@ -16,12 +16,12 @@ import {
 import {
   mockNews,
   getBreakingNews,
-  getBriefMatinal,
-  getLatestNews
+  categoryLabels
 } from '@/data/news';
 import { useStore } from '@/store/useStore';
 import { NewsArticle } from '@/types';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import { Clock, ChevronRight, Calendar } from 'lucide-react';
 
 export default function Home() {
   const { selectedSource, selectedCategory, searchQuery } = useStore();
@@ -49,16 +49,44 @@ export default function Home() {
     }
   });
 
-  // Combine live articles with mock data
+  // State to show older articles
+  const [showOlderArticles, setShowOlderArticles] = useState(false);
+
+  // Combine live articles with mock data - SORT BY FEATURED FIRST
   const allArticles = useMemo(() => {
+    let articles: NewsArticle[] = [];
+
     if (liveArticles.length > 0) {
-      // Merge live articles with mock data, prioritizing live
-      const liveIds = new Set(liveArticles.map(a => a.title.toLowerCase()));
-      const filteredMock = mockNews.filter(a => !liveIds.has(a.title.toLowerCase()));
-      return [...liveArticles, ...filteredMock];
+      // Use only live articles from database
+      articles = [...liveArticles];
+    } else {
+      // Fallback to mock data if no live articles
+      articles = [...mockNews];
     }
-    return mockNews;
+
+    // Sort: Featured first, then by date
+    return articles.sort((a, b) => {
+      // Featured articles first
+      if (a.isFeatured && !b.isFeatured) return -1;
+      if (!a.isFeatured && b.isFeatured) return 1;
+      // Then by date (newest first)
+      return b.publishedAt.getTime() - a.publishedAt.getTime();
+    });
   }, [liveArticles]);
+
+  // Filter articles from last 24 hours
+  const last24hArticles = useMemo(() => {
+    const now = Date.now();
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+    return allArticles.filter(a => a.publishedAt.getTime() >= oneDayAgo);
+  }, [allArticles]);
+
+  // Older articles (more than 24h)
+  const olderArticles = useMemo(() => {
+    const now = Date.now();
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+    return allArticles.filter(a => a.publishedAt.getTime() < oneDayAgo);
+  }, [allArticles]);
 
   // Handle article click
   const handleArticleClick = (article: NewsArticle) => {
@@ -93,20 +121,28 @@ export default function Home() {
       );
     }
 
-    return news.sort(
-      (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()
-    );
+    // Keep featured first, then sort by date
+    return news.sort((a, b) => {
+      if (a.isFeatured && !b.isFeatured) return -1;
+      if (!a.isFeatured && b.isFeatured) return 1;
+      return b.publishedAt.getTime() - a.publishedAt.getTime();
+    });
   }, [allArticles, selectedSource, selectedCategory, searchQuery]);
 
-  // Get latest articles for live feed
+  // Get latest articles for live feed - USE 24H FILTERED
   const latestArticles = useMemo(() => {
-    return allArticles
-      .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
-      .slice(0, 20);
-  }, [allArticles]);
+    return last24hArticles.slice(0, 20);
+  }, [last24hArticles]);
 
-  const breakingNews = getBreakingNews();
-  const briefMatinalArticles = getBriefMatinal();
+  // Breaking news from 24h articles
+  const breakingNews = useMemo(() => {
+    return last24hArticles.filter(a => a.isBreaking).slice(0, 5);
+  }, [last24hArticles]);
+
+  // Brief Matinal - use 24h articles with featured first
+  const briefMatinalArticles = useMemo(() => {
+    return last24hArticles.slice(0, 7);
+  }, [last24hArticles]);
 
   const hasActiveFilters = selectedSource || selectedCategory || searchQuery;
 
@@ -202,6 +238,43 @@ export default function Home() {
                 </div>
               </div>
             </section>
+
+            {/* Older Articles Section */}
+            {olderArticles.length > 0 && (
+              <section className="py-8 bg-white border-t border-gray-200">
+                <div className="max-w-7xl mx-auto px-4">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-gray-100 rounded-lg">
+                        <Calendar className="w-5 h-5 text-gray-600" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900">
+                          Actualités précédentes
+                        </h2>
+                        <p className="text-sm text-gray-500">
+                          {olderArticles.length} article{olderArticles.length > 1 ? 's' : ''} de plus de 24h
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowOlderArticles(!showOlderArticles)}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 font-medium transition-colors"
+                    >
+                      {showOlderArticles ? 'Masquer' : 'Voir tout'}
+                      <ChevronRight className={`w-4 h-4 transition-transform ${showOlderArticles ? 'rotate-90' : ''}`} />
+                    </button>
+                  </div>
+
+                  {showOlderArticles && (
+                    <LiveNewsFeed
+                      articles={olderArticles.slice(0, 20)}
+                      onArticleClick={handleArticleClick}
+                    />
+                  )}
+                </div>
+              </section>
+            )}
 
             {/* Sources Section - at the bottom */}
             <SourcesSection />

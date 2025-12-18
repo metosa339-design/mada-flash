@@ -88,6 +88,7 @@ function transformToNewsArticle(article: FetchedArticle, index: number): NewsArt
     publishedAt,
     isBreaking: article.isBreaking || (index < 3 && (Date.now() - publishedAt.getTime()) < 3600000),
     isLive: (Date.now() - publishedAt.getTime()) < 1800000,
+    isFeatured: article.isFeatured || false,  // Préserver le statut featured
     readTime,
     views,
     tags: [category, article.sourceName.toLowerCase().replace(/\s+/g, '-')]
