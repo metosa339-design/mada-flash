@@ -183,6 +183,38 @@ async function seedHistory() {
       source: "Histoire de l aviation"
     },
     {
+      day: 18, month: 12, year: 1958,
+      title: "Lancement du premier satellite de communication",
+      description: "Les États-Unis lancent SCORE, le premier satellite de communication qui diffuse un message de paix du président Eisenhower depuis l espace.",
+      location: "USA",
+      isMadagascar: false,
+      source: "Histoire spatiale"
+    },
+    {
+      day: 18, month: 12, year: 1865,
+      title: "Abolition de l esclavage aux États-Unis",
+      description: "Le 13e amendement de la Constitution américaine est ratifié, abolissant officiellement l esclavage sur tout le territoire des États-Unis.",
+      location: "USA",
+      isMadagascar: false,
+      source: "Histoire américaine"
+    },
+    {
+      day: 18, month: 12, year: 1973,
+      title: "Reconnaissance de la RDA par l ONU",
+      description: "L Allemagne de l Est (RDA) devient membre des Nations Unies, marquant une étape importante de la détente pendant la Guerre froide.",
+      location: "New York, USA",
+      isMadagascar: false,
+      source: "Histoire mondiale"
+    },
+    {
+      day: 18, month: 12, year: 1946,
+      title: "Naissance de Steven Spielberg",
+      description: "Naissance du réalisateur américain Steven Spielberg, créateur de films légendaires comme E.T., Jurassic Park, La Liste de Schindler.",
+      location: "Cincinnati, USA",
+      isMadagascar: false,
+      source: "Cinéma"
+    },
+    {
       day: 16, month: 12, year: 1770,
       title: "Naissance de Beethoven",
       description: "Naissance de Ludwig van Beethoven, compositeur allemand considéré comme l un des plus grands musiciens de tous les temps.",
