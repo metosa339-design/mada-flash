@@ -371,9 +371,75 @@ async function fetchRSSFeed(source: typeof RSS_SOURCES[0]): Promise<(ParsedArtic
   }
 }
 
+// Configuration pour le nettoyage automatique
+const MAX_ARTICLES = 500; // Nombre maximum d'articles à garder
+const ARTICLES_TO_DELETE_BATCH = 50; // Nombre d'articles à supprimer par batch
+
+// Fonction de nettoyage automatique des anciens articles
+async function cleanupOldArticles(): Promise<{ deleted: number; remaining: number }> {
+  console.log(`[CLEANUP] Starting automatic cleanup...`);
+
+  try {
+    // Compter le nombre total d'articles
+    const totalArticles = await prisma.article.count();
+    console.log(`[CLEANUP] Total articles in database: ${totalArticles}`);
+
+    // Si on est en dessous du maximum, pas besoin de nettoyer
+    if (totalArticles <= MAX_ARTICLES) {
+      console.log(`[CLEANUP] No cleanup needed (${totalArticles} <= ${MAX_ARTICLES})`);
+      return { deleted: 0, remaining: totalArticles };
+    }
+
+    // Calculer combien d'articles supprimer
+    const articlesToDelete = totalArticles - MAX_ARTICLES + ARTICLES_TO_DELETE_BATCH;
+    console.log(`[CLEANUP] Need to delete ${articlesToDelete} articles to free space`);
+
+    // Trouver les articles les plus anciens (non-featured)
+    const oldestArticles = await prisma.article.findMany({
+      where: {
+        isFeatured: false, // Ne pas supprimer les articles mis en avant
+      },
+      orderBy: {
+        publishedAt: 'asc' // Les plus anciens d'abord
+      },
+      take: articlesToDelete,
+      select: { id: true, title: true, publishedAt: true }
+    });
+
+    if (oldestArticles.length === 0) {
+      console.log(`[CLEANUP] No deletable articles found`);
+      return { deleted: 0, remaining: totalArticles };
+    }
+
+    // Supprimer les anciens articles
+    const idsToDelete = oldestArticles.map(a => a.id);
+
+    const deleteResult = await prisma.article.deleteMany({
+      where: {
+        id: { in: idsToDelete }
+      }
+    });
+
+    console.log(`[CLEANUP] Deleted ${deleteResult.count} old articles`);
+    console.log(`[CLEANUP] Oldest deleted: "${oldestArticles[0].title.substring(0, 40)}..." from ${oldestArticles[0].publishedAt}`);
+
+    const newTotal = await prisma.article.count();
+    console.log(`[CLEANUP] Remaining articles: ${newTotal}`);
+
+    return { deleted: deleteResult.count, remaining: newTotal };
+
+  } catch (error) {
+    console.error('[CLEANUP] Error during cleanup:', error);
+    return { deleted: 0, remaining: -1 };
+  }
+}
+
 // Main sync function
 async function syncRSSFeeds() {
   console.log(`[CRON RSS] Starting RSS sync at ${new Date().toISOString()}`);
+
+  // Nettoyer les anciens articles AVANT d'en ajouter de nouveaux
+  const cleanupResult = await cleanupOldArticles();
 
   let allArticles: (ParsedArticle & { sourceName: string; category: string })[] = [];
 
@@ -500,8 +566,14 @@ async function syncRSSFeeds() {
   }
 
   console.log(`[CRON RSS] Sync complete: ${savedCount} saved, ${enhancedCount} AI enhanced`);
+  console.log(`[CRON RSS] Cleanup: ${cleanupResult.deleted} deleted, ${cleanupResult.remaining} remaining`);
 
-  return { savedCount, enhancedCount, total: allArticles.length };
+  return {
+    savedCount,
+    enhancedCount,
+    total: allArticles.length,
+    cleanup: cleanupResult
+  };
 }
 
 // Cron endpoint - runs automatically
