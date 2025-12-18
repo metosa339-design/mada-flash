@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { cookies } from 'next/headers';
+import { getSession } from '@/lib/auth';
 import { searchImage } from '@/lib/image-search';
 
-// Vérifier l'authentification admin
-async function isAuthenticated() {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('admin_session');
-  return sessionCookie?.value === 'authenticated';
+// Helper to check authentication (same as other admin routes)
+async function checkAuth(request: NextRequest) {
+  const sessionId = request.cookies.get('mada-flash-admin-session')?.value;
+  if (!sessionId) return null;
+  return getSession(sessionId);
 }
 
 // GET: Voir les articles sans images ou avec placeholder
 export async function GET(request: NextRequest) {
-  if (!await isAuthenticated()) {
+  const user = await checkAuth(request);
+  if (!user) {
     return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 });
   }
 
@@ -55,7 +56,8 @@ export async function GET(request: NextRequest) {
 
 // POST: Mettre à jour les images des articles
 export async function POST(request: NextRequest) {
-  if (!await isAuthenticated()) {
+  const user = await checkAuth(request);
+  if (!user) {
     return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 });
   }
 
