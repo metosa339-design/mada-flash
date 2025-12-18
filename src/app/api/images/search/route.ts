@@ -42,53 +42,141 @@ interface UnsplashResult {
   };
 }
 
-// Extract keywords from text for image search
-function extractKeywords(title: string, summary?: string): string {
+// Mots à ignorer dans la recherche (stop words français)
+const STOP_WORDS = new Set([
+  'le', 'la', 'les', 'un', 'une', 'des', 'de', 'du', 'au', 'aux',
+  'et', 'ou', 'mais', 'donc', 'car', 'ni', 'que', 'qui', 'quoi',
+  'ce', 'cette', 'ces', 'son', 'sa', 'ses', 'leur', 'leurs',
+  'pour', 'par', 'sur', 'sous', 'dans', 'avec', 'sans', 'entre',
+  'est', 'sont', 'être', 'avoir', 'fait', 'faire', 'dit', 'dire',
+  'plus', 'moins', 'très', 'bien', 'mal', 'peu', 'trop', 'aussi',
+  'comme', 'même', 'autre', 'tous', 'tout', 'toute', 'toutes',
+  'après', 'avant', 'depuis', 'pendant', 'encore', 'déjà', 'alors'
+]);
+
+// Mapping catégorie -> termes de recherche Pixabay optimisés
+const CATEGORY_IMAGE_TERMS: Record<string, string[]> = {
+  politique: ['government building', 'politics africa', 'parliament', 'meeting official'],
+  economie: ['economy africa', 'business market', 'money currency', 'finance graph'],
+  sport: ['football africa', 'soccer stadium', 'sports team', 'athletics'],
+  culture: ['african culture', 'traditional dance', 'music festival', 'art africa'],
+  societe: ['african community', 'people africa', 'social gathering', 'education africa'],
+  international: ['world map', 'global diplomacy', 'international meeting', 'flags nations'],
+  environnement: ['madagascar nature', 'tropical forest', 'wildlife lemur', 'baobab tree'],
+  technologie: ['technology africa', 'digital innovation', 'smartphone africa', 'internet']
+};
+
+// Termes spécifiques Madagascar pour Pixabay
+const MADAGASCAR_TERMS = [
+  'madagascar', 'antananarivo', 'lemur', 'baobab', 'tropical island',
+  'african landscape', 'indian ocean', 'rice field asia'
+];
+
+// Extract keywords from text for image search - Version améliorée
+function extractKeywords(title: string, summary?: string, category?: string): string {
   const text = `${title} ${summary || ''}`.toLowerCase();
 
-  // Madagascar-specific keywords mapping
-  const keywordMappings: Record<string, string[]> = {
-    'madagascar': ['politique', 'président', 'gouvernement', 'ministre', 'assemblée', 'élection'],
-    'antananarivo': ['tana', 'capitale', 'tananarive'],
-    'football': ['barea', 'foot', 'match', 'cnaps', 'fmf'],
-    'économie': ['ariary', 'inflation', 'commerce', 'investissement', 'banque'],
-    'environnement': ['cyclone', 'climat', 'forêt', 'nature', 'biodiversité'],
-    'santé': ['hôpital', 'médecin', 'maladie', 'vaccination'],
-    'éducation': ['école', 'université', 'étudiant', 'bepc', 'bacc'],
-    'agriculture': ['riz', 'vanille', 'culture', 'récolte', 'paysan'],
-    'transport': ['route', 'avion', 'bateau', 'taxi-brousse'],
-    'tourisme': ['plage', 'parc', 'lémuriens', 'baobab'],
+  // 1. Si on a une catégorie, utiliser les termes optimisés pour cette catégorie
+  if (category && CATEGORY_IMAGE_TERMS[category]) {
+    const categoryTerms = CATEGORY_IMAGE_TERMS[category];
+    // Ajouter un terme Madagascar si pertinent
+    const randomCategoryTerm = categoryTerms[Math.floor(Math.random() * categoryTerms.length)];
+    return `${randomCategoryTerm} madagascar`;
+  }
+
+  // 2. Détection de thèmes spécifiques dans le titre
+  const themeKeywords: Record<string, string> = {
+    // Sport
+    'barea': 'football madagascar team',
+    'football': 'soccer match stadium',
+    'sport': 'sports competition africa',
+    'match': 'football stadium game',
+    'can': 'african cup nations football',
+
+    // Politique
+    'président': 'president government africa',
+    'gouvernement': 'government building politics',
+    'ministre': 'minister meeting official',
+    'élection': 'election voting democracy',
+    'assemblée': 'parliament assembly politics',
+
+    // Économie
+    'économie': 'economy business africa',
+    'ariary': 'currency money finance',
+    'banque': 'bank finance building',
+    'commerce': 'market trade business',
+    'investissement': 'investment business growth',
+
+    // Société
+    'santé': 'health hospital medical',
+    'éducation': 'education school students',
+    'école': 'school classroom education',
+    'université': 'university campus students',
+
+    // Environnement
+    'cyclone': 'tropical storm weather',
+    'environnement': 'nature environment green',
+    'climat': 'climate weather nature',
+    'forêt': 'forest tropical trees',
+
+    // Transport
+    'route': 'road highway infrastructure',
+    'avion': 'airplane airport aviation',
+    'transport': 'transportation vehicle road',
+
+    // Tourisme
+    'tourisme': 'tourism travel madagascar',
+    'plage': 'beach tropical paradise',
+    'parc': 'national park wildlife',
+    'lémuriens': 'lemur madagascar wildlife'
   };
 
-  // Find relevant category
-  let searchTerms: string[] = [];
-
-  for (const [category, keywords] of Object.entries(keywordMappings)) {
-    if (keywords.some(kw => text.includes(kw))) {
-      searchTerms.push(category);
-      searchTerms.push('madagascar');
-      break;
+  // Chercher un thème correspondant
+  for (const [keyword, searchTerm] of Object.entries(themeKeywords)) {
+    if (text.includes(keyword)) {
+      return searchTerm;
     }
   }
 
-  // If no specific category found, use generic Madagascar search
-  if (searchTerms.length === 0) {
-    // Extract first few meaningful words from title
-    const words = title
-      .toLowerCase()
-      .replace(/[^\w\sàâäéèêëïîôùûüÿçœæ]/g, '')
-      .split(' ')
-      .filter(w => w.length > 3)
-      .slice(0, 3);
+  // 3. Fallback: extraire les mots significatifs du titre
+  const words = title
+    .toLowerCase()
+    .replace(/[^\w\sàâäéèêëïîôùûüÿçœæ-]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 3 && !STOP_WORDS.has(w))
+    .slice(0, 2);
 
-    searchTerms = [...words, 'madagascar'];
+  if (words.length > 0) {
+    // Ajouter "madagascar" ou "africa" pour contextualiser
+    return `${words.join(' ')} madagascar africa`;
   }
 
-  return searchTerms.join(' ');
+  // 4. Dernier fallback: image générique de Madagascar
+  const fallbackTerms = MADAGASCAR_TERMS[Math.floor(Math.random() * MADAGASCAR_TERMS.length)];
+  return `${fallbackTerms} nature`;
+}
+
+// Générer des termes de recherche alternatifs si la première recherche échoue
+function getAlternativeSearchTerms(category?: string): string[] {
+  const alternatives = [
+    'madagascar landscape nature',
+    'african cityscape urban',
+    'tropical island paradise',
+    'madagascar wildlife lemur',
+    'african people community',
+    'baobab tree sunset',
+    'antananarivo city aerial'
+  ];
+
+  if (category && CATEGORY_IMAGE_TERMS[category]) {
+    return [...CATEGORY_IMAGE_TERMS[category], ...alternatives.slice(0, 3)];
+  }
+
+  return alternatives;
 }
 
 // Search Pixabay (Free API - 100 requests/minute)
-async function searchPixabay(query: string): Promise<ImageResult | null> {
+async function searchPixabay(query: string, category?: string): Promise<ImageResult | null> {
   const apiKey = process.env.PIXABAY_API_KEY;
 
   if (!apiKey) {
@@ -96,29 +184,48 @@ async function searchPixabay(query: string): Promise<ImageResult | null> {
     return null;
   }
 
-  try {
-    const encodedQuery = encodeURIComponent(query);
-    const response = await fetch(
-      `https://pixabay.com/api/?key=${apiKey}&q=${encodedQuery}&image_type=photo&orientation=horizontal&safesearch=true&per_page=5&lang=fr`,
-      { next: { revalidate: 3600 } } // Cache for 1 hour
-    );
+  // Liste des requêtes à essayer
+  const queriesToTry = [query];
 
-    if (!response.ok) return null;
+  // Ajouter des termes alternatifs si la catégorie est fournie
+  if (category) {
+    const alternatives = getAlternativeSearchTerms(category);
+    queriesToTry.push(...alternatives.slice(0, 2));
+  }
 
-    const data = await response.json();
+  for (const searchQuery of queriesToTry) {
+    try {
+      const encodedQuery = encodeURIComponent(searchQuery);
+      const response = await fetch(
+        `https://pixabay.com/api/?key=${apiKey}&q=${encodedQuery}&image_type=photo&orientation=horizontal&safesearch=true&per_page=5`,
+        { next: { revalidate: 3600 } } // Cache for 1 hour
+      );
 
-    if (data.hits && data.hits.length > 0) {
-      const hit: PixabayHit = data.hits[0];
-      return {
-        url: hit.largeImageURL,
-        thumbnailUrl: hit.previewURL,
-        source: 'Pixabay',
-        photographer: hit.user,
-        sourceUrl: hit.pageURL
-      };
+      if (!response.ok) continue;
+
+      const data = await response.json();
+
+      if (data.hits && data.hits.length > 0) {
+        // Prendre une image aléatoire parmi les 3 premiers résultats pour plus de variété
+        const maxIndex = Math.min(3, data.hits.length);
+        const randomIndex = Math.floor(Math.random() * maxIndex);
+        const hit: PixabayHit = data.hits[randomIndex];
+
+        console.log(`Pixabay: Image trouvée pour "${searchQuery}" - ${hit.largeImageURL}`);
+
+        return {
+          url: hit.largeImageURL,
+          thumbnailUrl: hit.previewURL,
+          source: 'Pixabay',
+          photographer: hit.user,
+          sourceUrl: hit.pageURL
+        };
+      }
+
+      console.log(`Pixabay: Aucun résultat pour "${searchQuery}", essai suivant...`);
+    } catch (error) {
+      console.error(`Pixabay search error for "${searchQuery}":`, error);
     }
-  } catch (error) {
-    console.error('Pixabay search error:', error);
   }
 
   return null;
@@ -339,26 +446,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build search query with category if provided
-    let searchQuery = extractKeywords(title, summary);
-    if (category) {
-      searchQuery = `${category} ${searchQuery}`;
-    }
+    // Extraire les mots-clés optimisés pour la recherche d'images
+    const searchQuery = extractKeywords(title, summary, category);
+
+    console.log(`Image search: title="${title.substring(0, 50)}...", category="${category}", query="${searchQuery}"`);
 
     let image: ImageResult | null = null;
 
-    // Try all sources in order
-    image = await searchPixabay(searchQuery);
+    // Try Pixabay first (avec retry et termes alternatifs)
+    image = await searchPixabay(searchQuery, category);
 
+    // Try Pexels if Pixabay fails
     if (!image) {
       image = await searchPexels(searchQuery);
     }
 
+    // Try Unsplash if others fail
     if (!image) {
       image = await searchUnsplash(searchQuery);
     }
 
+    // Fall back to AI generation if no free image found
     if (!image) {
+      console.log('No free image found, falling back to AI generation...');
       image = await generateAIImage(searchQuery, title);
     }
 
@@ -371,6 +481,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Return placeholder if all else fails
     return NextResponse.json({
       success: true,
       image: {
