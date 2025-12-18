@@ -182,10 +182,15 @@ export default function Footer() {
               Tous les droits appartiennent à leurs propriétaires respectifs.
             </div>
             <div className="border-t border-white/10 pt-3">
-              <strong className="text-gray-400">Images :</strong> Les images d'illustration affichées sur ce site sont
-              générées par intelligence artificielle (Google Gemini AI) afin d'illustrer le sujet des articles de manière
-              cohérente et respectueuse. Ces images ne représentent pas des personnes réelles et sont créées uniquement
-              à des fins d'illustration éditoriale.
+              <strong className="text-gray-400">Droits d'auteur :</strong> Toutes les images, photos et contenus visuels
+              utilisés sur ce site appartiennent à leurs auteurs et propriétaires respectifs. Les images provenant des
+              articles originaux restent la propriété exclusive de leurs sources. En cas de réclamation, veuillez nous
+              contacter à <a href="mailto:contact@mada-flash.mg" className="text-[#ff6b35] hover:underline">contact@mada-flash.mg</a>.
+            </div>
+            <div className="border-t border-white/10 pt-3">
+              <strong className="text-gray-400">Images générées :</strong> Certaines images d'illustration sont
+              générées par intelligence artificielle (Google Gemini AI) à des fins d'illustration éditoriale uniquement.
+              Ces images ne représentent pas des personnes réelles.
             </div>
           </div>
         </div>
