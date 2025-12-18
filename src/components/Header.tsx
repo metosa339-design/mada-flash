@@ -92,22 +92,24 @@ export default function Header() {
               animate={{ opacity: 1, x: 0 }}
               className="flex items-center gap-3"
             >
+              {/* Madagascar Map Logo */}
               <div className="relative">
                 <Image
-                  src="/logo.png"
-                  alt="Mada-Flash Logo"
-                  width={72}
-                  height={72}
-                  className="object-contain"
+                  src="/images/madagascar-map.png"
+                  alt="Madagascar"
+                  width={48}
+                  height={60}
+                  className="object-contain drop-shadow-md"
                   priority
                 />
               </div>
-              <div className="hidden sm:block">
+              <div>
                 <h1 className="text-2xl font-bold">
-                  <span className="text-[#00a8e8]">Mada-Flash</span>
-                  <span className="text-[#00a8e8] text-base">.mg</span>
+                  <span className="text-[#e63946]">Mada</span>
+                  <span className="text-[#2a9d8f]">-Flash</span>
+                  <span className="text-[#e63946] text-base">.mg</span>
                 </h1>
-                <p className="text-xs text-gray-500 -mt-1">L'Info en Bref. Toujours la Source.</p>
+                <p className="text-xs text-gray-500 -mt-1 hidden sm:block">L'Info en Bref. Toujours la Source.</p>
               </div>
             </motion.div>
 
