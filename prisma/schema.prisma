@@ -53,6 +53,11 @@ model Article {
   isFromRSS       Boolean   @default(false) // True if imported from RSS
   isAiEnhanced    Boolean   @default(false) // True if content was enhanced by AI
 
+  // Fact-checking / Reliability
+  reliabilityScore Int?     // 0-100 score
+  reliabilityLabel String?  // "verified", "likely", "unverified", "disputed"
+  factCheckNotes   String?  // AI notes about verification
+
   // SEO
   metaTitle       String?
   metaDescription String?

@@ -5,10 +5,13 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import {
   Clock,
-  Eye,
   Zap,
   ChevronRight,
-  Loader2
+  Loader2,
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldQuestion
 } from 'lucide-react';
 import { NewsArticle } from '@/types';
 import { useTimeAgo } from '@/hooks/useTimeAgo';
@@ -204,10 +207,6 @@ export default function NewsCard({ article, variant = 'default', index = 0, onCl
                   <Clock className="w-4 h-4" />
                   {timeAgo}
                 </span>
-                <span className="flex items-center gap-1">
-                  <Eye className="w-4 h-4" />
-                  {article.views.toLocaleString()}
-                </span>
               </div>
 
               {/* Source */}
@@ -387,12 +386,6 @@ export default function NewsCard({ article, variant = 'default', index = 0, onCl
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {timeAgo}
-            </span>
-            <span className="flex items-center gap-1">
-              <Eye className="w-3 h-3" />
-              {article.views >= 1000
-                ? `${(article.views / 1000).toFixed(1)}k`
-                : article.views}
             </span>
           </div>
 

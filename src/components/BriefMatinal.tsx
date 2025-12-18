@@ -103,14 +103,14 @@ export default function BriefMatinal({ articles, onArticleClick }: Props) {
           className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4"
         >
           <div className="stats-card">
-            <div className="stats-number">
-              {articles.reduce((acc, a) => acc + a.views, 0).toLocaleString()}
-            </div>
-            <div className="text-sm text-gray-500">Vues totales</div>
-          </div>
-          <div className="stats-card">
             <div className="stats-number">{articles.length}</div>
             <div className="text-sm text-gray-500">Articles</div>
+          </div>
+          <div className="stats-card">
+            <div className="stats-number">
+              {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+            </div>
+            <div className="text-sm text-gray-500">Aujourd'hui</div>
           </div>
           <div className="stats-card">
             <div className="stats-number">

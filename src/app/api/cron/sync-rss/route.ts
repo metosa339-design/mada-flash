@@ -7,6 +7,10 @@ interface EnhancedArticle {
   summary: string;
   content: string;
   tags: string[];
+  // Fact-checking
+  reliabilityScore: number;  // 0-100
+  reliabilityLabel: string;  // "verified", "likely", "unverified", "disputed"
+  factCheckNotes: string;    // Notes about verification
 }
 
 // Types for RSS parsing
@@ -226,7 +230,7 @@ async function enhanceArticleWithAI(
 
   const context = categoryContext[category] || "actualités de Madagascar";
 
-  const prompt = `Tu es un journaliste professionnel et analyste expert sur Madagascar. Tu dois rédiger un article ORIGINAL et ANALYTIQUE basé sur cette information source.
+  const prompt = `Tu es un journaliste professionnel, fact-checker et analyste expert sur Madagascar. Tu dois rédiger un article ORIGINAL et VÉRIFIER LA FIABILITÉ de l'information.
 
 **INFORMATION SOURCE:**
 - Titre original: "${originalTitle}"
@@ -236,33 +240,44 @@ async function enhanceArticleWithAI(
 
 **INSTRUCTIONS STRICTES:**
 
-1. **TITRE CAPTIVANT** (max 80 caractères):
-   - Accrocheur, qui donne envie de lire
-   - Évite le clickbait mais soit percutant
+1. **VÉRIFICATION DE FIABILITÉ** (TRÈS IMPORTANT):
+   - Évalue la crédibilité de l'information
+   - La source est-elle fiable ? (${sourceName})
+   - L'information est-elle vérifiable ?
+   - Y a-t-il des incohérences ou signes de désinformation ?
+   - Attribue un score de 0 à 100 et un label
+
+2. **TITRE CAPTIVANT** (max 80 caractères):
+   - Accrocheur mais FACTUEL
+   - Évite le clickbait
    - Utilise des verbes d'action
 
-2. **RÉSUMÉ** (2-3 phrases, max 200 caractères):
-   - Synthèse claire et impactante
-   - Les informations essentielles
+3. **RÉSUMÉ** (2-3 phrases, max 200 caractères):
+   - Synthèse claire et factuelle
+   - Les informations essentielles vérifiées
 
-3. **CONTENU DE L'ARTICLE** (300-400 mots):
-   - NE COPIE PAS le contenu source, RÉÉCRIS entièrement
+4. **CONTENU DE L'ARTICLE** (300-400 mots):
+   - RÉÉCRIS entièrement avec ton analyse
    - Structure en paragraphes clairs
-   - **Mets en gras** (avec **texte**) les idées importantes
-   - Ajoute du CONTEXTE et de l'ANALYSE sur Madagascar
-   - Inclus des CHIFFRES et STATISTIQUES si pertinent
+   - **Mets en gras** les idées importantes
+   - Ajoute du CONTEXTE sur Madagascar
    - Reste FACTUEL et OBJECTIF
    - Cite la source originale à la fin
 
-4. **TAGS** (5 mots-clés pertinents)
+5. **TAGS** (5 mots-clés pertinents)
 
 **FORMAT DE RÉPONSE (JSON):**
 {
   "title": "Titre captivant ici",
   "summary": "Résumé percutant ici",
   "content": "Contenu de l'article...",
-  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+  "reliabilityScore": 85,
+  "reliabilityLabel": "verified",
+  "factCheckNotes": "Information vérifiée. Source fiable. Cohérent avec..."
 }
+
+Labels possibles: "verified" (80-100), "likely" (60-79), "unverified" (40-59), "disputed" (0-39)
 
 IMPORTANT: Réponds UNIQUEMENT avec le JSON.`;
 
@@ -450,7 +465,7 @@ async function syncRSSFeeds() {
         if (cat) categoryId = cat.id;
       }
 
-      // Save to database
+      // Save to database with reliability info
       await prisma.article.create({
         data: {
           title: finalTitle,
@@ -466,6 +481,10 @@ async function syncRSSFeeds() {
           isFromRSS: true,
           isAiEnhanced: !!enhanced,
           categoryId,
+          // Fact-checking data
+          reliabilityScore: enhanced?.reliabilityScore || 70,
+          reliabilityLabel: enhanced?.reliabilityLabel || 'likely',
+          factCheckNotes: enhanced?.factCheckNotes || 'Non vérifié automatiquement',
         },
       });
 

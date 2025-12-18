@@ -311,10 +311,6 @@ export default function ArticleModal({ article, isOpen, onClose }: Props) {
                   <Clock className="w-4 h-4" />
                   {formatTime(article.publishedAt)} ({timeAgo})
                 </span>
-                <span className="flex items-center gap-1">
-                  <Eye className="w-4 h-4" />
-                  {article.views.toLocaleString()} vues
-                </span>
                 <span className="text-gray-400">
                   {article.readTime} min de lecture
                 </span>
