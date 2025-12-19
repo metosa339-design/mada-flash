@@ -56,11 +56,16 @@ const STOP_WORDS = new Set([
 
 // Mots malgaches courants pour détecter si le texte est en malgache
 const MALAGASY_INDICATORS = [
-  // Mots courants malgaches
+  // Mots courants malgaches (articles, conjonctions, prépositions)
   'ny', 'sy', 'ary', 'fa', 'izay', 'tsy', 'dia', 'ho', 'amin', 'tamin',
   'efa', 'mbola', 'misy', 'manana', 'mahazo', 'mahita', 'manao', 'miteny',
   'olona', 'trano', 'taona', 'andro', 'volana', 'herinandro', 'ora',
   'firenena', 'governemanta', 'minisitra', 'filoha', 'vahoaka',
+  // Mots d'actualités fréquents
+  'vaovao', 'tambatra', 'tetikasa', 'fampandrosoana', 'fisitrahana',
+  'maimaimpoana', 'oniversite', 'mpiasa', 'mari-boninahitra', 'tetik',
+  'manohana', 'fanabeazana', 'fahasalamana', 'fitaterana', 'toe-karena',
+  'kolontsaina', 'fanatanjahantena', 'tontolo', 'iainana', 'fiarahamonina',
   // Mots spécifiques souvent dans les news
   'jiolahy', 'mpangalatra', 'heloka', 'vonjy', 'loza', 'afo', 'rano',
   'lalana', 'fiara', 'lozam-pifamoivoizana', 'hopitaly', 'dokotera',
@@ -71,7 +76,10 @@ const MALAGASY_INDICATORS = [
   'mpanao politika', 'fifidianana', 'vato', 'solombavambahoaka',
   'vary', 'voankazo', 'legioma', 'omby', 'akoho', 'trondro',
   'toetr\'andro', 'orana', 'rivo-doza', 'tondra-drano', 'hain-tany',
-  'tanimbary', 'tanimboly', 'ala', 'tontolo iainana'
+  'tanimbary', 'tanimboly', 'ala', 'tontolo iainana',
+  // Verbes et noms courants
+  'nahazo', 'nomena', 'natao', 'hita', 'nisy', 'nanao', 'nilaza',
+  'fivoriana', 'fankalazana', 'fitsidihana', 'fandaharana', 'fanambarana'
 ];
 
 // Cache pour les traductions (évite les appels API répétés)

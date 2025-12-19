@@ -776,62 +776,67 @@ export default function ArticleEditor({ article, onSave, onClose }: ArticleEdito
         </form>
 
         {/* Footer */}
-        <div className="p-4 border-t bg-gray-50 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Statut:</span>
-            <span
-              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                formData.status === 'published'
-                  ? 'bg-green-100 text-green-700'
+        <div className="p-4 border-t bg-gray-50">
+          {/* Action buttons - reorganized for better visibility */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">Statut:</span>
+              <span
+                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  formData.status === 'published'
+                    ? 'bg-green-100 text-green-700'
+                    : formData.status === 'scheduled'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-gray-100 text-gray-700'
+                }`}
+              >
+                {formData.status === 'published'
+                  ? 'Publié'
                   : formData.status === 'scheduled'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-gray-100 text-gray-700'
-              }`}
-            >
-              {formData.status === 'published'
-                ? 'Publié'
-                : formData.status === 'scheduled'
-                ? 'Programmé'
-                : 'Brouillon'}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              form="article-form"
-              disabled={isSaving}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
-            >
-              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Sauvegarder brouillon
-            </button>
-            {formData.scheduledAt && (
+                  ? 'Programmé'
+                  : 'Brouillon'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleSchedule}
-                disabled={isSaving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                onClick={onClose}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <Clock className="w-4 h-4" />
-                Programmer
+                Annuler
               </button>
-            )}
-            <button
-              type="button"
-              onClick={handlePublish}
-              disabled={isSaving}
-              className="px-4 py-2 bg-gradient-to-r from-[#ff6b35] to-[#ff3d7f] text-white rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
-            >
-              <Eye className="w-4 h-4" />
-              Publier
-            </button>
+              <button
+                type="submit"
+                form="article-form"
+                disabled={isSaving}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2"
+              >
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Brouillon
+              </button>
+              {formData.scheduledAt && (
+                <button
+                  type="button"
+                  onClick={handleSchedule}
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <Clock className="w-4 h-4" />
+                  Programmer
+                </button>
+              )}
+              {/* PUBLISH BUTTON - More prominent */}
+              <button
+                type="button"
+                onClick={handlePublish}
+                disabled={isSaving}
+                className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2 font-semibold shadow-lg shadow-green-200"
+              >
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                Publier maintenant
+              </button>
+            </div>
           </div>
         </div>
       </div>
