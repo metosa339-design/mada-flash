@@ -18,8 +18,8 @@ import {
   Trash2,
   ImagePlus,
   Wand2,
-  FileEdit,
   Brain,
+  Plus,
 } from 'lucide-react';
 
 interface Category {
@@ -35,6 +35,7 @@ interface Article {
   summary?: string;
   categoryId?: string;
   imageUrl?: string;
+  additionalImages?: string[]; // Support multiple images
   sourceUrl?: string;
   sourceName?: string;
   status: string;
@@ -56,6 +57,7 @@ export default function ArticleEditor({ article, onSave, onClose }: ArticleEdito
     summary: '',
     categoryId: '',
     imageUrl: '',
+    additionalImages: [],
     sourceUrl: '',
     sourceName: '',
     status: 'draft',
@@ -64,7 +66,6 @@ export default function ArticleEditor({ article, onSave, onClose }: ArticleEdito
     isBreaking: false,
   });
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -685,6 +686,97 @@ export default function ArticleEditor({ article, onSave, onClose }: ArticleEdito
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Additional Images Section */}
+          <div className="border border-gray-200 rounded-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-4 py-3 border-b border-indigo-200">
+              <h3 className="font-semibold text-indigo-900 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-indigo-600" />
+                Images supplémentaires
+                {formData.additionalImages && formData.additionalImages.length > 0 && (
+                  <span className="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded-full">
+                    {formData.additionalImages.length}
+                  </span>
+                )}
+              </h3>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Display existing additional images */}
+              {formData.additionalImages && formData.additionalImages.length > 0 && (
+                <div className="grid grid-cols-3 gap-3">
+                  {formData.additionalImages.map((imgUrl, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={imgUrl}
+                        alt={`Image ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newImages = [...(formData.additionalImages || [])];
+                          newImages.splice(index, 1);
+                          setFormData({ ...formData, additionalImages: newImages });
+                        }}
+                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                      <span className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                        {index + 1}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add new image */}
+              <div className="flex gap-3">
+                <input
+                  type="url"
+                  placeholder="URL de l'image supplémentaire..."
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const input = e.target as HTMLInputElement;
+                      const url = input.value.trim();
+                      if (url && url.startsWith('http')) {
+                        setFormData({
+                          ...formData,
+                          additionalImages: [...(formData.additionalImages || []), url]
+                        });
+                        input.value = '';
+                      }
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const input = document.querySelector('input[placeholder="URL de l\'image supplémentaire..."]') as HTMLInputElement;
+                    const url = input?.value.trim();
+                    if (url && url.startsWith('http')) {
+                      setFormData({
+                        ...formData,
+                        additionalImages: [...(formData.additionalImages || []), url]
+                      });
+                      input.value = '';
+                    }
+                  }}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 text-sm font-medium"
+                >
+                  <Plus className="w-4 h-4" />
+                  Ajouter
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-500">
+                Ajoutez des images supplémentaires pour enrichir votre article. Entrez l'URL et appuyez sur Entrée ou cliquez sur Ajouter.
+              </p>
             </div>
           </div>
 
