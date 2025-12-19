@@ -77,12 +77,21 @@ const RSS_SOURCES = [
 // Categories prioritaires
 const PRIORITY_CATEGORIES = ['politique', 'societe'];
 
-// Mots-clés à bloquer (nécrologie, décès, etc.)
+// Mots-clés à bloquer (nécrologie, décès, etc.) - Français et Malgache
 const BLOCKED_KEYWORDS = [
+  // Français
   'nécrologie', 'necrologie', 'décès', 'deces', 'décédé', 'decede',
-  'mort de', 'obsèques', 'obseques', 'funérailles', 'funerailles',
+  'mort de', 'est mort', 'est décédé', 'est décédée', 'a péri',
+  'obsèques', 'obseques', 'funérailles', 'funerailles',
   'enterrement', 'inhumation', 'hommage posthume', 'disparition de',
-  'nous quitte', 'a rendu l\'âme', 'dernier adieu', 'repose en paix'
+  'nous quitte', 'a rendu l\'âme', 'dernier adieu', 'repose en paix',
+  'r.i.p', 'rip', 'in memoriam', 'en mémoire de', 'condoléances',
+  'deuil national', 'deuil', 'veillée funèbre', 'cercueil',
+  // Malgache
+  'maty', 'nodimandry', 'niala aina', 'lasa nodimandry', 'namoy ny ainy',
+  'fandevenana', 'fasana', 'fitsaboana ny maty', 'faty', 'fahafatesana',
+  'maty ny', 'namana maty', 'nalahelo', 'fisaorana faty',
+  'famangiana faty', 'filazan-doza', 'fahoriana', 'alahelo'
 ];
 
 // Fonction pour vérifier si un article doit être bloqué
@@ -207,79 +216,155 @@ function detectCategory(title: string, summary: string): string {
   return 'societe'; // Default: société
 }
 
-// AI Enhancement using Gemini
+// Fetch full article content from source URL
+async function fetchFullArticleContent(sourceUrl: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(sourceUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Mada-Flash/1.0)',
+        'Accept': 'text/html,application/xhtml+xml'
+      }
+    });
+
+    clearTimeout(timeoutId);
+    if (!response.ok) return null;
+
+    const html = await response.text();
+
+    // Extract main content from HTML (common patterns)
+    let content = '';
+
+    // Try to find article content in common containers
+    const articlePatterns = [
+      /<article[^>]*>([\s\S]*?)<\/article>/gi,
+      /<div[^>]*class="[^"]*(?:content|article|post|entry)[^"]*"[^>]*>([\s\S]*?)<\/div>/gi,
+      /<div[^>]*id="[^"]*(?:content|article|post)[^"]*"[^>]*>([\s\S]*?)<\/div>/gi,
+    ];
+
+    for (const pattern of articlePatterns) {
+      const matches = html.match(pattern);
+      if (matches && matches[0]) {
+        content = matches[0];
+        break;
+      }
+    }
+
+    // If no specific container found, use body
+    if (!content) {
+      const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+      if (bodyMatch) content = bodyMatch[1];
+    }
+
+    // Clean HTML tags and get text
+    content = content
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
+      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
+      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
+      .replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#039;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Limit to ~2000 chars for API
+    return content.substring(0, 2000);
+  } catch (error) {
+    console.error('Error fetching full article:', error);
+    return null;
+  }
+}
+
+// AI Enhancement using Gemini - Optimized for captivating, concise content
 async function enhanceArticleWithAI(
   originalTitle: string,
   originalSummary: string,
   category: string,
-  sourceName: string
+  sourceName: string,
+  sourceUrl?: string
 ): Promise<EnhancedArticle | null> {
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
   if (!apiKey) return null;
 
-  const categoryContext: Record<string, string> = {
-    politique: "politique malgache, gouvernement, élections, assemblée nationale, actualité politique de Madagascar",
-    economie: "économie de Madagascar, ariary, commerce, investissements, croissance économique",
-    sport: "sport malgache, football, Barea, athlétisme, compétitions sportives",
-    culture: "culture malgache, traditions, art, musique, patrimoine culturel",
-    societe: "société malgache, vie quotidienne, santé, éducation, problèmes sociaux",
-    international: "relations internationales, diplomatie, Madagascar dans le monde",
-    environnement: "environnement à Madagascar, biodiversité, cyclones, climat",
-    technologie: "technologie, numérique, innovation, startups à Madagascar"
-  };
+  // Try to fetch full article content for better context
+  let fullContent = '';
+  if (sourceUrl) {
+    const fetched = await fetchFullArticleContent(sourceUrl);
+    if (fetched && fetched.length > originalSummary.length) {
+      fullContent = fetched;
+      console.log(`[AI] Fetched ${fullContent.length} chars from source`);
+    }
+  }
 
-  const context = categoryContext[category] || "actualités de Madagascar";
+  const sourceContent = fullContent || originalSummary;
 
-  const prompt = `Tu es un journaliste professionnel, fact-checker et analyste expert sur Madagascar. Tu dois rédiger un article ORIGINAL et VÉRIFIER LA FIABILITÉ de l'information.
+  const prompt = `Tu es un journaliste expert de Madagascar. Réécris cet article de manière CAPTIVANTE et PROFESSIONNELLE.
 
-**INFORMATION SOURCE:**
-- Titre original: "${originalTitle}"
-- Résumé: "${originalSummary}"
-- Source: ${sourceName}
-- Catégorie: ${category} (${context})
+**SOURCE:**
+Titre: "${originalTitle}"
+Contenu source: "${sourceContent.substring(0, 1500)}"
+Source: ${sourceName}
+Catégorie: ${category}
 
-**INSTRUCTIONS STRICTES:**
+**RÈGLES STRICTES - TRÈS IMPORTANT:**
 
-1. **VÉRIFICATION DE FIABILITÉ** (TRÈS IMPORTANT):
-   - Évalue la crédibilité de l'information
-   - La source est-elle fiable ? (${sourceName})
-   - L'information est-elle vérifiable ?
-   - Y a-t-il des incohérences ou signes de désinformation ?
-   - Attribue un score de 0 à 100 et un label
+📰 **TITRE** (max 70 caractères):
+- Percutant, informatif, accrocheur
+- Pas de clickbait mais donne envie de lire
+- Utilise des verbes d'action forts
 
-2. **TITRE CAPTIVANT** (max 80 caractères):
-   - Accrocheur mais FACTUEL
-   - Évite le clickbait
-   - Utilise des verbes d'action
+📝 **RÉSUMÉ** (1-2 phrases, max 150 caractères):
+- L'essentiel en une phrase choc
+- Répond à: Quoi? Qui? Où?
 
-3. **RÉSUMÉ** (2-3 phrases, max 200 caractères):
-   - Synthèse claire et factuelle
-   - Les informations essentielles vérifiées
+📖 **CONTENU** (150-250 mots MAXIMUM - c'est court!):
+Structure OBLIGATOIRE:
 
-4. **CONTENU DE L'ARTICLE** (300-400 mots):
-   - RÉÉCRIS entièrement avec ton analyse
-   - Structure en paragraphes clairs
-   - **Mets en gras** les idées importantes
-   - Ajoute du CONTEXTE sur Madagascar
-   - Reste FACTUEL et OBJECTIF
-   - Cite la source originale à la fin
+**[Paragraphe d'accroche - 2 lignes max]**
+Une phrase choc qui résume l'info principale.
 
-5. **TAGS** (5 mots-clés pertinents)
+**🔑 Les faits clés:**
+• Point important 1
+• Point important 2
+• Point important 3
 
-**FORMAT DE RÉPONSE (JSON):**
+**[Contexte bref - 2-3 lignes]**
+Explication simple du contexte.
+
+**[Conclusion/Impact - 1-2 lignes]**
+Pourquoi c'est important ou quelle suite.
+
+*Source: ${sourceName}*
+
+**STYLE:**
+- Phrases COURTES et DIRECTES
+- **Gras** sur les mots-clés importants
+- Pas de blabla, que l'essentiel
+- Ton journalistique professionnel
+- Accessible à tous
+
+**FORMAT JSON:**
 {
-  "title": "Titre captivant ici",
-  "summary": "Résumé percutant ici",
-  "content": "Contenu de l'article...",
+  "title": "Titre accrocheur ici",
+  "summary": "Résumé percutant",
+  "content": "Contenu structuré avec markdown...",
   "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
-  "reliabilityScore": 85,
-  "reliabilityLabel": "verified",
-  "factCheckNotes": "Information vérifiée. Source fiable. Cohérent avec..."
+  "reliabilityScore": 75,
+  "reliabilityLabel": "likely",
+  "factCheckNotes": "Analyse de fiabilité"
 }
 
-Labels possibles: "verified" (80-100), "likely" (60-79), "unverified" (40-59), "disputed" (0-39)
-
-IMPORTANT: Réponds UNIQUEMENT avec le JSON.`;
+RÉPONDS UNIQUEMENT EN JSON.`;
 
   try {
     const response = await fetch(
@@ -492,13 +577,14 @@ async function syncRSSFeeds() {
 
       if (existing) continue;
 
-      // Enhance with AI
+      // Enhance with AI - fetch full content from source for better quality
       console.log(`[CRON RSS] Enhancing: "${article.title.substring(0, 40)}..." (${article.category})`);
       const enhanced = await enhanceArticleWithAI(
         article.title,
         article.summary,
         article.category,
-        article.sourceName
+        article.sourceName,
+        article.sourceUrl // Pass source URL to fetch full content
       );
 
       const finalTitle = enhanced?.title || article.title;

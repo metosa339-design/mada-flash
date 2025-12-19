@@ -1,0 +1,62 @@
+services:
+  # Main web service
+  - type: web
+    name: mada-flash
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mada-flash-db
+          property: connectionString
+      - key: GOOGLE_GEMINI_API_KEY
+        sync: false
+      - key: PIXABAY_API_KEY
+        sync: false
+      - key: PEXELS_API_KEY
+        sync: false
+
+  # Cron job: Sync RSS + AI Enhancement (every 2 hours)
+  - type: cron
+    name: mada-flash-sync-rss
+    runtime: node
+    schedule: "0 */2 * * *"
+    buildCommand: echo "Cron job ready"
+    startCommand: curl -X GET "$RENDER_EXTERNAL_URL/api/cron/sync-rss"
+    envVars:
+      - key: RENDER_EXTERNAL_URL
+        fromService:
+          type: web
+          name: mada-flash
+          property: url
+
+  # Cron job: Enhance existing articles (every 6 hours)
+  - type: cron
+    name: mada-flash-enhance
+    runtime: node
+    schedule: "30 */6 * * *"
+    buildCommand: echo "Cron job ready"
+    startCommand: curl -X GET "$RENDER_EXTERNAL_URL/api/cron/enhance-articles?limit=20&force=true"
+    envVars:
+      - key: RENDER_EXTERNAL_URL
+        fromService:
+          type: web
+          name: mada-flash
+          property: url
+
+  # Cron job: Publish scheduled articles (every 4 hours)
+  - type: cron
+    name: mada-flash-publish
+    runtime: node
+    schedule: "0 */4 * * *"
+    buildCommand: echo "Cron job ready"
+    startCommand: curl -X GET "$RENDER_EXTERNAL_URL/api/cron/publish"
+    envVars:
+      - key: RENDER_EXTERNAL_URL
+        fromService:
+          type: web
+          name: mada-flash
+          property: url

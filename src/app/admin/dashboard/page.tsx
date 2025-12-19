@@ -206,6 +206,7 @@ export default function AdminDashboard() {
   // Image update state
   const [isUpdatingImages, setIsUpdatingImages] = useState(false);
 
+
   useEffect(() => {
     checkAuth();
   }, []);
@@ -432,14 +433,11 @@ export default function AdminDashboard() {
   const syncRSSFeeds = async () => {
     setIsSyncingRSS(true);
     try {
-      const res = await fetch('/api/news', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
+      // Utiliser l'endpoint sync-rss qui inclut l'enrichissement IA automatique
+      const res = await fetch('/api/cron/sync-rss');
       const data = await res.json();
       if (data.success) {
-        alert(`Synchronisation réussie! ${data.totalRSSArticles} articles RSS au total.`);
+        alert(`Synchronisation réussie!\n• ${data.savedCount} nouveaux articles ajoutés\n• ${data.enhancedCount} enrichis avec l'IA`);
         fetchArticles();
         fetchStats();
       } else {
@@ -479,6 +477,7 @@ export default function AdminDashboard() {
       setIsUpdatingImages(false);
     }
   };
+
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('fr-MG', {
