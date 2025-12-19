@@ -37,6 +37,7 @@ model Article {
   sourceUrl       String?   // Link to original source
   sourceName      String?   // Name of the source (e.g., "Midi Madagasikara")
   imageUrl        String?
+  additionalImages String?  // JSON array of additional image URLs
   thumbnailUrl    String?
   categoryId      String?
   category        Category? @relation(fields: [categoryId], references: [id])
