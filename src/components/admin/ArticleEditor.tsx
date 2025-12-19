@@ -689,12 +689,12 @@ export default function ArticleEditor({ article, onSave, onClose }: ArticleEdito
             </div>
           </div>
 
-          {/* Additional Images Section */}
+          {/* Additional Images Section - Multiple Upload */}
           <div className="border border-gray-200 rounded-xl overflow-hidden">
             <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-4 py-3 border-b border-indigo-200">
               <h3 className="font-semibold text-indigo-900 flex items-center gap-2">
                 <ImageIcon className="w-5 h-5 text-indigo-600" />
-                Images supplémentaires
+                Galerie photos
                 {formData.additionalImages && formData.additionalImages.length > 0 && (
                   <span className="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded-full">
                     {formData.additionalImages.length}
@@ -704,46 +704,130 @@ export default function ArticleEditor({ article, onSave, onClose }: ArticleEdito
             </div>
 
             <div className="p-4 space-y-4">
-              {/* Display existing additional images */}
+              {/* Display existing additional images - Horizontal scroll */}
               {formData.additionalImages && formData.additionalImages.length > 0 && (
-                <div className="grid grid-cols-3 gap-3">
-                  {formData.additionalImages.map((imgUrl, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={imgUrl}
-                        alt={`Image ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newImages = [...(formData.additionalImages || [])];
-                          newImages.splice(index, 1);
-                          setFormData({ ...formData, additionalImages: newImages });
-                        }}
-                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                      <span className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
-                        {index + 1}
-                      </span>
-                    </div>
-                  ))}
+                <div className="relative">
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-indigo-300 scrollbar-track-gray-100" style={{ scrollbarWidth: 'thin' }}>
+                    {formData.additionalImages.map((imgUrl, index) => (
+                      <div key={index} className="relative group flex-shrink-0 w-32 h-32">
+                        <img
+                          src={imgUrl}
+                          alt={`Image ${index + 1}`}
+                          className="w-full h-full object-cover rounded-lg border-2 border-gray-200 hover:border-indigo-400 transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newImages = [...(formData.additionalImages || [])];
+                            newImages.splice(index, 1);
+                            setFormData({ ...formData, additionalImages: newImages });
+                          }}
+                          className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                        <span className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                          {index + 1}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Scroll indicators */}
+                  <p className="text-xs text-gray-400 mt-1 text-center">
+                    ← Faites défiler pour voir toutes les images →
+                  </p>
                 </div>
               )}
 
-              {/* Add new image */}
-              <div className="flex gap-3">
-                <input
-                  type="url"
-                  placeholder="URL de l'image supplémentaire..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-sm"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const input = e.target as HTMLInputElement;
-                      const url = input.value.trim();
+              {/* Upload multiple files */}
+              <div className="space-y-3">
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-indigo-300 rounded-lg cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 transition-colors bg-white">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={async (e) => {
+                      const files = e.target.files;
+                      if (!files || files.length === 0) return;
+
+                      // Upload each file
+                      const uploadedUrls: string[] = [];
+                      for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const formDataUpload = new FormData();
+                        formDataUpload.append('file', file);
+                        formDataUpload.append('folder', 'articles');
+
+                        try {
+                          const res = await fetch('/api/admin/media', {
+                            method: 'POST',
+                            credentials: 'include',
+                            body: formDataUpload,
+                          });
+                          const data = await res.json();
+                          if (data.success && data.media?.url) {
+                            uploadedUrls.push(data.media.url);
+                          }
+                        } catch (err) {
+                          console.error('Error uploading file:', err);
+                        }
+                      }
+
+                      if (uploadedUrls.length > 0) {
+                        setFormData({
+                          ...formData,
+                          additionalImages: [...(formData.additionalImages || []), ...uploadedUrls]
+                        });
+                      }
+
+                      // Reset input
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+                  <div className="text-center">
+                    <Upload className="w-10 h-10 text-indigo-400 mx-auto mb-2" />
+                    <span className="text-sm text-indigo-600 font-medium">
+                      Cliquez pour uploader plusieurs photos
+                    </span>
+                    <span className="text-xs text-indigo-500 block mt-1">
+                      PNG, JPG, GIF • Sélection multiple autorisée
+                    </span>
+                  </div>
+                </label>
+
+                {/* URL input as alternative */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-gray-200"></div>
+                  <span className="text-xs text-gray-400 font-medium">OU</span>
+                  <div className="flex-1 h-px bg-gray-200"></div>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    placeholder="Coller une URL d'image..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const input = e.target as HTMLInputElement;
+                        const url = input.value.trim();
+                        if (url && url.startsWith('http')) {
+                          setFormData({
+                            ...formData,
+                            additionalImages: [...(formData.additionalImages || []), url]
+                          });
+                          input.value = '';
+                        }
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const input = document.querySelector('input[placeholder="Coller une URL d\'image..."]') as HTMLInputElement;
+                      const url = input?.value.trim();
                       if (url && url.startsWith('http')) {
                         setFormData({
                           ...formData,
@@ -751,32 +835,14 @@ export default function ArticleEditor({ article, onSave, onClose }: ArticleEdito
                         });
                         input.value = '';
                       }
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const input = document.querySelector('input[placeholder="URL de l\'image supplémentaire..."]') as HTMLInputElement;
-                    const url = input?.value.trim();
-                    if (url && url.startsWith('http')) {
-                      setFormData({
-                        ...formData,
-                        additionalImages: [...(formData.additionalImages || []), url]
-                      });
-                      input.value = '';
-                    }
-                  }}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 text-sm font-medium"
-                >
-                  <Plus className="w-4 h-4" />
-                  Ajouter
-                </button>
+                    }}
+                    className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-1.5 text-sm font-medium"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Ajouter
+                  </button>
+                </div>
               </div>
-
-              <p className="text-xs text-gray-500">
-                Ajoutez des images supplémentaires pour enrichir votre article. Entrez l'URL et appuyez sur Entrée ou cliquez sur Ajouter.
-              </p>
             </div>
           </div>
 
