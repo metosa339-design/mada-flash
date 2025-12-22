@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import {
@@ -48,7 +48,7 @@ const isValidImageUrl = (url: string | undefined): boolean => {
   return true;
 };
 
-export default function NewsCard({ article, variant = 'default', index = 0, onClick }: Props) {
+function NewsCardComponent({ article, variant = 'default', index = 0, onClick }: Props) {
   const timeAgo = useTimeAgo(article.publishedAt);
   // Start with placeholder, then load AI-generated image
   const [imageUrl, setImageUrl] = useState(PLACEHOLDER_IMAGE);
@@ -75,6 +75,14 @@ export default function NewsCard({ article, variant = 'default', index = 0, onCl
       setIsLoading(false);
       hasFetched.current = true;
       return;
+    }
+
+    // PRIORITÉ 1.5: Si l'article a une image personnalisée (manuelle), ne PAS chercher d'image AI
+    // Cela permet de garder le placeholder si l'utilisateur a supprimé l'image manuellement
+    if (article.hasCustomImage) {
+      setIsLoading(false);
+      hasFetched.current = true;
+      return; // Garder le placeholder, ne pas régénérer
     }
 
     // PRIORITÉ 2: Vérifier le cache seulement si pas d'image en DB
@@ -142,13 +150,13 @@ export default function NewsCard({ article, variant = 'default', index = 0, onCl
     const timeoutId = setTimeout(fetchFreeImage, delay);
 
     return () => clearTimeout(timeoutId);
-  }, [article.id, article.title, article.summary, article.category, article.imageUrl, index]);
+  }, [article.id, article.title, article.summary, article.category, article.imageUrl, article.hasCustomImage, index]);
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = useCallback((e: React.MouseEvent) => {
     // Don't trigger onClick when clicking on external links
     if ((e.target as HTMLElement).closest('a')) return;
     onClick?.();
-  };
+  }, [onClick]);
 
   if (variant === 'featured') {
     return (
@@ -164,6 +172,8 @@ export default function NewsCard({ article, variant = 'default', index = 0, onCl
             src={imageUrl}
             alt={article.title}
             fill
+            priority={index < 2}
+            loading={index < 2 ? undefined : 'lazy'}
             className="object-contain bg-gray-100 transition-transform duration-500 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
@@ -256,6 +266,7 @@ export default function NewsCard({ article, variant = 'default', index = 0, onCl
             src={imageUrl}
             alt={article.title}
             fill
+            loading="lazy"
             className="object-contain bg-gray-100"
           />
           {article.isLive && (
@@ -347,6 +358,8 @@ export default function NewsCard({ article, variant = 'default', index = 0, onCl
           src={imageUrl}
           alt={article.title}
           fill
+          loading={index < 4 ? undefined : 'lazy'}
+          priority={index < 4}
           className="object-contain bg-gray-100 transition-transform duration-500 group-hover:scale-110"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -420,3 +433,17 @@ export default function NewsCard({ article, variant = 'default', index = 0, onCl
     </motion.article>
   );
 }
+
+// Memoize the component to prevent unnecessary re-renders
+// Only re-render when article data actually changes
+const NewsCard = memo(NewsCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.article.id === nextProps.article.id &&
+    prevProps.article.imageUrl === nextProps.article.imageUrl &&
+    prevProps.article.title === nextProps.article.title &&
+    prevProps.variant === nextProps.variant &&
+    prevProps.index === nextProps.index
+  );
+});
+
+export default NewsCard;

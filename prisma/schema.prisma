@@ -53,6 +53,7 @@ model Article {
   isBreaking      Boolean   @default(false)
   isFromRSS       Boolean   @default(false) // True if imported from RSS
   isAiEnhanced    Boolean   @default(false) // True if content was enhanced by AI
+  hasCustomImage  Boolean   @default(false) // True if image was manually set (don't regenerate)
 
   // Fact-checking / Reliability
   reliabilityScore Int?     // 0-100 score
@@ -69,6 +70,16 @@ model Article {
 
   // Relations
   media           ArticleMedia[]
+
+  // Performance indexes
+  @@index([publishedAt(sort: Desc), status])
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([isFromRSS, status, publishedAt(sort: Desc)])
+  @@index([categoryId, status, publishedAt(sort: Desc)])
+  @@index([isFeatured, status])
+  @@index([isBreaking, status])
+  @@index([sourceUrl])
+  @@index([createdAt(sort: Desc)])
 }
 
 // Vlogs - video content
@@ -95,6 +106,10 @@ model Vlog {
   // Timestamps
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  // Performance indexes
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([categoryId, status])
 }
 
 // Media library - images, files
@@ -167,21 +182,442 @@ model ScheduledTask {
   updatedAt   DateTime  @updatedAt
 }
 
-// Historical events for "Ce jour dans l'histoire" feature
+// Historical events for "Ce jour dans l'histoire" feature - EXTENDED
 model HistoricalEvent {
   id            String   @id @default(cuid())
   day           Int      // Day of month (1-31)
   month         Int      // Month (1-12)
   year          Int      // Year when event happened
+  endYear       Int?     // End year for periods (optional)
   title         String   // Short title
-  description   String   // Detailed description
-  location      String?  // Country or region
-  isMadagascar  Boolean  @default(false) // Priority for Madagascar events
-  imageUrl      String?  // Optional illustration
+  titleMg       String?  // Title in Malagasy
+  titleEn       String?  // Title in English
+  description   String   // Detailed description in French
+  descriptionMg String?  // Description in Malagasy
+  descriptionEn String?  // Description in English
+  location      String?  // Specific location in Madagascar
+  region        String?  // Region (Analamanga, Vakinankaratra, etc.)
+  coordinates   String?  // GPS coordinates for map "lat,lng"
+
+  // Classification
+  eraId         String?
+  era           HistoricalEra? @relation(fields: [eraId], references: [id])
+  eventType     String   @default("general") // political, economic, social, cultural, discovery, conflict, independence
+  importance    Int      @default(1) // 1-5 scale
+
+  // Related content
+  imageUrl      String?  // Main illustration
+  gallery       String?  // JSON array of additional images
+  videoUrl      String?  // YouTube or video link
+  documentUrl   String?  // PDF or document link
+
+  // Metadata
   source        String?  // Source/reference
+  sourceUrl     String?  // Link to source
+  tags          String?  // JSON array of tags
+  relatedEvents String?  // JSON array of related event IDs
+
+  // AI Enhancement
+  aiEnhanced    Boolean  @default(false)
+  aiSummary     String?  // AI-generated summary
+
+  // Status
+  isMadagascar  Boolean  @default(true)
+  isVerified    Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  isFeatured    Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  figures       HistoricalFigureEvent[]
+
+  @@index([day, month])
+  @@index([year])
+  @@index([eraId])
+  @@index([eventType])
+  @@index([importance])
+}
+
+// Historical Eras/Periods
+model HistoricalEra {
+  id            String   @id @default(cuid())
+  name          String   // Era name in French
+  nameMg        String?  // Era name in Malagasy
+  nameEn        String?  // Era name in English
+  slug          String   @unique
+  description   String   // Detailed description
+  descriptionMg String?
+  descriptionEn String?
+
+  startYear     Int      // Start year
+  endYear       Int?     // End year (null for ongoing)
+
+  // Visual
+  color         String   @default("#ff6b35") // Color for timeline
+  icon          String?  // Icon identifier
+  imageUrl      String?  // Representative image
+
+  // Metadata
+  order         Int      @default(0) // Display order
+  isActive      Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  events        HistoricalEvent[]
+  figures       HistoricalFigure[]
+
+  @@index([startYear])
+}
+
+// Historical Figures (Personnages historiques)
+model HistoricalFigure {
+  id            String   @id @default(cuid())
+  name          String   // Full name
+  title         String?  // Title (Roi, Reine, Président, etc.)
+  slug          String   @unique
+
+  // Biographical info
+  birthDate     String?  // Could be approximate "circa 1810"
+  birthYear     Int?
+  deathDate     String?
+  deathYear     Int?
+  birthPlace    String?
+  deathPlace    String?
+
+  // Description
+  biography     String   // Full biography
+  biographyMg   String?
+  biographyEn   String?
+  shortBio      String?  // Short summary (1-2 sentences)
+
+  // Classification
+  role          String   // monarch, politician, leader, explorer, hero, artist, scientist
+  eraId         String?
+  era           HistoricalEra? @relation(fields: [eraId], references: [id])
+  dynasty       String?  // For monarchs
+
+  // Visual
+  imageUrl      String?
+  gallery       String?  // JSON array of images
+
+  // Legacy
+  achievements  String?  // JSON array of key achievements
+  quotes        String?  // JSON array of famous quotes
+
+  // Metadata
+  source        String?
+  sourceUrl     String?
+  tags          String?
+
+  // Status
+  isVerified    Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  isFeatured    Boolean  @default(false)
+  importance    Int      @default(1) // 1-5
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  events        HistoricalFigureEvent[]
+
+  @@index([role])
+  @@index([eraId])
+  @@index([birthYear])
+}
+
+// Junction table for Figure-Event relationship
+model HistoricalFigureEvent {
+  id        String   @id @default(cuid())
+  figureId  String
+  eventId   String
+  role      String?  // Their role in this event
+  figure    HistoricalFigure @relation(fields: [figureId], references: [id], onDelete: Cascade)
+  event     HistoricalEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([figureId, eventId])
+}
+
+// Economic Indicators
+model EconomicIndicator {
+  id            String   @id @default(cuid())
+  name          String   // Indicator name
+  nameEn        String?
+  slug          String   @unique
+  type          String   // price, rate, export, import, gdp, inflation
+
+  // Data
+  currentValue  Float?
+  previousValue Float?
+  unit          String   // MGA, USD, EUR, kg, tonnes, %
+  change        Float?   // Percentage change
+  trend         String?  // up, down, stable
+
+  // Context
+  description   String?
+  category      String?  // vanilla, coffee, rice, mining, tourism
+
+  // Source
+  source        String?
+  sourceUrl     String?
+  lastUpdated   DateTime?
+
+  // Historical data (JSON array of {date, value})
+  historicalData String?
+
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  @@index([day, month])
+  @@index([type])
+  @@index([category])
+}
+
+// Mining Resources
+model MiningResource {
+  id            String   @id @default(cuid())
+  name          String   // Resource name
+  nameEn        String?
+  nameMg        String?
+  slug          String   @unique
+
+  // Classification
+  type          String   // precious_stone, mineral, metal, energy
+  subType       String?  // sapphire, ruby, ilmenite, graphite, nickel, cobalt
+
+  // Description
+  description   String
+  descriptionEn String?
+  descriptionMg String?
+
+  // Location
+  region        String?  // Main region
+  locations     String?  // JSON array of specific locations with coordinates
+
+  // Production
+  productionVolume String?  // Annual production
+  exportValue      String?  // Annual export value
+  worldRank        Int?     // World ranking for this resource
+  percentWorld     Float?   // Percentage of world production
+
+  // History
+  discoveryYear    Int?
+  exploitationStart Int?
+
+  // Visual
+  imageUrl      String?
+  mapImageUrl   String?  // Map showing deposits
+  gallery       String?  // JSON array
+
+  // Companies
+  operators     String?  // JSON array of operating companies
+
+  // Environmental
+  environmentalImpact String?
+
+  // Status
+  isActive      Boolean  @default(true)
+  isFeatured    Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([type])
+  @@index([region])
+}
+
+// Export Products
+model ExportProduct {
+  id            String   @id @default(cuid())
+  name          String
+  nameEn        String?
+  nameMg        String?
+  slug          String   @unique
+
+  // Classification
+  category      String   // agriculture, mining, textile, seafood, handicraft
+  subCategory   String?
+
+  // Description
+  description   String
+  descriptionEn String?
+  descriptionMg String?
+
+  // Economic data
+  annualExportValue Float?  // in USD
+  percentOfExports  Float?  // % of total exports
+  mainDestinations  String? // JSON array of countries
+  worldRank         Int?
+
+  // Production
+  productionRegions String? // JSON array of regions
+  productionVolume  String?
+  harvestSeason     String? // For agricultural products
+
+  // History
+  historyStart      Int?    // When exports began
+  historicalContext String? // Historical significance
+
+  // Visual
+  imageUrl      String?
+  gallery       String?
+
+  // Current trends
+  trend         String?  // growing, declining, stable
+  challenges    String?  // Current challenges
+  opportunities String?  // Future opportunities
+
+  isActive      Boolean  @default(true)
+  isFeatured    Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([category])
+}
+
+// Famous Things about Madagascar
+model FamousThing {
+  id            String   @id @default(cuid())
+  name          String
+  nameEn        String?
+  nameMg        String?
+  slug          String   @unique
+
+  // Classification
+  category      String   // fauna, flora, culture, landmark, tradition, cuisine, sport
+
+  // Description
+  description   String
+  descriptionEn String?
+  descriptionMg String?
+  shortDesc     String?  // One-liner
+
+  // For fauna/flora
+  scientificName String?
+  endemic         Boolean @default(false) // Endemic to Madagascar
+  conservationStatus String? // endangered, vulnerable, etc.
+
+  // Location
+  region        String?
+  location      String?
+  coordinates   String?
+
+  // Visual
+  imageUrl      String?
+  gallery       String?
+  videoUrl      String?
+
+  // Facts
+  funFacts      String?  // JSON array
+
+  // Recognition
+  worldRecognition String? // UNESCO, World Heritage, etc.
+
+  isActive      Boolean  @default(true)
+  isFeatured    Boolean  @default(false)
+  order         Int      @default(0)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([category])
+}
+
+// Political Leaders/Rulers history
+model PoliticalLeader {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  title         String   // Roi, Reine, Président, Premier Ministre
+
+  // Reign/Term
+  startDate     String?
+  startYear     Int
+  endDate       String?
+  endYear       Int?
+
+  // Biography
+  biography     String
+  shortBio      String?
+  birthYear     Int?
+  deathYear     Int?
+
+  // Classification
+  type          String   // monarch, president, prime_minister, colonial
+  dynasty       String?  // Merina, etc.
+  party         String?  // Political party
+
+  // Visual
+  imageUrl      String?
+
+  // Legacy
+  majorEvents   String?  // JSON array of key events
+  achievements  String?
+
+  // Predecessor/Successor
+  predecessorId String?
+  successorId   String?
+
+  order         Int      @default(0)
+  isActive      Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([type])
+  @@index([startYear])
+}
+
+// Daily content automation
+model DailyContent {
+  id            String   @id @default(cuid())
+  date          DateTime @unique @db.Date
+
+  // Ce jour dans l'histoire
+  historyEventIds String? // JSON array of event IDs for this day
+
+  // Mot du jour
+  wordOfDay     String?
+  wordMeaning   String?
+  wordExample   String?
+
+  // Quiz
+  quizQuestion  String?
+  quizOptions   String?  // JSON array
+  quizAnswer    String?
+  quizExplanation String?
+
+  // Featured content
+  featuredFigureId String?
+  featuredResourceId String?
+  featuredProductId String?
+
+  // AI generated
+  aiGenerated   Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// AI Content Generation Log
+model AIContentLog {
+  id            String   @id @default(cuid())
+  contentType   String   // history_event, figure, resource, daily_content
+  contentId     String?
+
+  prompt        String   // The prompt used
+  response      String?  // AI response (truncated)
+
+  status        String   @default("pending") // pending, success, failed
+  error         String?
+
+  model         String?  // gemini-pro, etc.
+  tokensUsed    Int?
+
+  createdAt     DateTime @default(now())
 }

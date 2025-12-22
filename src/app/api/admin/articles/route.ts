@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
+import { articleCreateSchema, articleQuerySchema, validateData, sanitizeContent } from '@/lib/validations';
 
 // Helper to check authentication
 async function checkAuth(request: NextRequest) {
@@ -28,11 +29,25 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const status = searchParams.get('status');
-    const categoryId = searchParams.get('categoryId');
-    const search = searchParams.get('search');
+
+    // Validate query parameters with Zod
+    const queryParams = {
+      page: searchParams.get('page') || '1',
+      limit: searchParams.get('limit') || '20',
+      status: searchParams.get('status') || undefined,
+      categoryId: searchParams.get('categoryId') || undefined,
+      search: searchParams.get('search') || undefined,
+    };
+
+    const validation = validateData(articleQuerySchema, queryParams);
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: 'Paramètres invalides', details: validation.errors },
+        { status: 400 }
+      );
+    }
+
+    const { page, limit, status, categoryId, search } = validation.data;
 
     const where: any = {};
     if (status) where.status = status;
@@ -83,6 +98,16 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
+
+    // Validate input with Zod
+    const validation = validateData(articleCreateSchema, body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: 'Données invalides', details: validation.errors },
+        { status: 400 }
+      );
+    }
+
     const {
       title,
       content,
@@ -92,18 +117,17 @@ export async function POST(request: NextRequest) {
       additionalImages,
       sourceUrl,
       sourceName,
-      status = 'draft',
+      status,
       scheduledAt,
       isFeatured,
       isBreaking,
-    } = body;
+      hasCustomImage,
+      metaTitle,
+      metaDescription,
+    } = validation.data;
 
-    if (!title || !content) {
-      return NextResponse.json(
-        { success: false, error: 'Titre et contenu requis' },
-        { status: 400 }
-      );
-    }
+    // Sanitize HTML content to prevent XSS
+    const sanitizedContent = sanitizeContent(content);
 
     // Generate unique slug
     let slug = generateSlug(title);
@@ -116,7 +140,7 @@ export async function POST(request: NextRequest) {
       data: {
         title,
         slug,
-        content,
+        content: sanitizedContent,
         summary,
         categoryId: categoryId || null,
         imageUrl,
@@ -128,6 +152,9 @@ export async function POST(request: NextRequest) {
         publishedAt: status === 'published' ? new Date() : null,
         isFeatured: isFeatured || false,
         isBreaking: isBreaking || false,
+        hasCustomImage: hasCustomImage || false, // Track manual image uploads
+        metaTitle,
+        metaDescription,
       },
       include: { category: true },
     });

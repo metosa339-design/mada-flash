@@ -22,6 +22,7 @@ export interface NewsArticle {
   isBreaking: boolean;
   isLive: boolean;
   isFeatured: boolean;  // Article à la une
+  hasCustomImage?: boolean; // Manual image - don't regenerate with AI
   readTime: number;
   views: number;
   tags: string[];

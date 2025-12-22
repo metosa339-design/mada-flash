@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
+import { articleUpdateSchema, validateData, sanitizeContent } from '@/lib/validations';
 
 async function checkAuth(request: NextRequest) {
   const sessionId = request.cookies.get('mada-flash-admin-session')?.value;
@@ -55,6 +56,16 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
+
+    // Validate input with Zod
+    const validation = validateData(articleUpdateSchema, body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: 'Données invalides', details: validation.errors },
+        { status: 400 }
+      );
+    }
+
     const {
       title,
       content,
@@ -68,9 +79,10 @@ export async function PUT(
       scheduledAt,
       isFeatured,
       isBreaking,
+      hasCustomImage,
       metaTitle,
       metaDescription,
-    } = body;
+    } = validation.data;
 
     // Check if article exists
     const existing = await prisma.article.findUnique({ where: { id } });
@@ -87,11 +99,14 @@ export async function PUT(
       publishedAt = new Date();
     }
 
+    // Sanitize content if provided
+    const sanitizedContent = content ? sanitizeContent(content) : undefined;
+
     const article = await prisma.article.update({
       where: { id },
       data: {
         title,
-        content,
+        content: sanitizedContent,
         summary,
         categoryId: categoryId || null,
         imageUrl,
@@ -103,6 +118,7 @@ export async function PUT(
         publishedAt,
         isFeatured,
         isBreaking,
+        hasCustomImage, // Track manual image uploads
         metaTitle,
         metaDescription,
       },

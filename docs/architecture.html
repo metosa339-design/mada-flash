@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mada-Flash - Architecture Technique</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --primary: #ff6b35;
+            --secondary: #004e64;
+            --accent: #00a896;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), #ff3d7f);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .section {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            border: 1px solid var(--border);
+        }
+
+        .section h2 {
+            color: var(--secondary);
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 3px solid var(--primary);
+            display: inline-block;
+        }
+
+        .section h3 {
+            color: var(--text);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        .mermaid {
+            background: #f1f5f9;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .tech-card {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        .tech-card h4 {
+            color: var(--secondary);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tech-card ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .tech-card li {
+            padding: 0.25rem 0;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tech-card li::before {
+            content: "→";
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin: 0.25rem;
+        }
+
+        .badge-primary { background: #fee2e2; color: #dc2626; }
+        .badge-success { background: #dcfce7; color: #16a34a; }
+        .badge-info { background: #dbeafe; color: #2563eb; }
+        .badge-warning { background: #fef3c7; color: #d97706; }
+        .badge-purple { background: #f3e8ff; color: #9333ea; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--secondary);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        code {
+            background: #1e293b;
+            color: #22d3ee;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+        }
+
+        .flow-diagram {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border-radius: 12px;
+            margin: 1rem 0;
+        }
+
+        .flow-box {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgb(0 0 0 / 0.1);
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .flow-box.primary { border-top: 4px solid var(--primary); }
+        .flow-box.secondary { border-top: 4px solid var(--secondary); }
+        .flow-box.accent { border-top: 4px solid var(--accent); }
+
+        .flow-arrow {
+            font-size: 1.5rem;
+            color: var(--text-muted);
+        }
+
+        .env-table {
+            font-size: 0.9rem;
+        }
+
+        .env-table code {
+            font-size: 0.8rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            header h1 {
+                font-size: 1.75rem;
+            }
+
+            .section {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🇲🇬 Mada-Flash</h1>
+        <p>Architecture Technique - Application d'actualités Madagascar</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem;">Généré le: <script>document.write(new Date().toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'}))</script></p>
+    </header>
+
+    <div class="container">
+        <!-- Vue d'ensemble -->
+        <section class="section">
+            <h2>🏗️ Vue d'ensemble de l'Architecture</h2>
+
+            <div class="mermaid">
+flowchart TB
+    subgraph Client["🖥️ Client (Browser)"]
+        UI[Next.js App Router]
+        RC[React Components]
+        ZS[Zustand Store]
+    end
+
+    subgraph Server["⚡ Next.js Server"]
+        API[API Routes]
+        SSR[Server Components]
+        MW[Middleware]
+    end
+
+    subgraph External["🌐 Services Externes"]
+        RSS[RSS Feeds<br/>5 sources]
+        GROQ[Groq AI<br/>Llama 3.3 70B]
+        GEMINI[Google Gemini<br/>Fallback]
+        PIXABAY[Pixabay API]
+        PEXELS[Pexels API]
+    end
+
+    subgraph Database["🗄️ Base de Données"]
+        NEON[(Neon PostgreSQL)]
+        PRISMA[Prisma ORM]
+    end
+
+    subgraph Deploy["☁️ Déploiement"]
+        RENDER[Render.com]
+        CRON[Cron Jobs]
+    end
+
+    Client --> Server
+    Server --> Database
+    Server --> External
+    Deploy --> Server
+    CRON --> API
+            </div>
+        </section>
+
+        <!-- Stack Technique -->
+        <section class="section">
+            <h2>🛠️ Stack Technique</h2>
+
+            <div class="tech-stack">
+                <div class="tech-card">
+                    <h4>⚛️ Frontend</h4>
+                    <ul>
+                        <li>Next.js 16 (App Router)</li>
+                        <li>React 19</li>
+                        <li>TypeScript</li>
+                        <li>Tailwind CSS</li>
+                        <li>Framer Motion</li>
+                        <li>Zustand (State)</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>🔧 Backend</h4>
+                    <ul>
+                        <li>Next.js API Routes</li>
+                        <li>Prisma ORM</li>
+                        <li>Zod Validation</li>
+                        <li>bcrypt (Auth)</li>
+                        <li>Rate Limiting</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>🤖 Intelligence Artificielle</h4>
+                    <ul>
+                        <li>Groq (Llama 3.3 70B) - Gratuit</li>
+                        <li>Google Gemini - Fallback</li>
+                        <li>Claude API - Option payante</li>
+                        <li>Enrichissement automatique</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>🗄️ Base de Données</h4>
+                    <ul>
+                        <li>PostgreSQL (Neon)</li>
+                        <li>Prisma Migrations</li>
+                        <li>Index optimisés</li>
+                        <li>Relations complexes</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>🖼️ Images</h4>
+                    <ul>
+                        <li>Pixabay API (illimité)</li>
+                        <li>Pexels API</li>
+                        <li>Unsplash API</li>
+                        <li>Recherche contextuelle</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>☁️ Infrastructure</h4>
+                    <ul>
+                        <li>Render.com (Hosting)</li>
+                        <li>Cron Jobs automatiques</li>
+                        <li>Neon (DB serverless)</li>
+                        <li>CDN intégré</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Flux de données RSS -->
+        <section class="section">
+            <h2>📡 Flux RSS & Enrichissement AI</h2>
+
+            <div class="mermaid">
+sequenceDiagram
+    participant CRON as ⏰ Cron Job
+    participant API as 🔌 /api/cron/sync-rss
+    participant RSS as 📰 Sources RSS
+    participant AI as 🤖 Groq AI
+    participant DB as 🗄️ PostgreSQL
+
+    CRON->>API: GET (toutes les 2h)
+    API->>RSS: Fetch 5 sources
+    RSS-->>API: Articles bruts
+
+    loop Pour chaque article
+        API->>API: Détection catégorie
+        API->>API: Filtre nécrologie
+        API->>DB: Vérifier doublon
+        alt Nouvel article
+            API->>AI: Enrichissement contenu
+            AI-->>API: Titre + Résumé + Contenu
+            API->>DB: Sauvegarder (published)
+        end
+    end
+
+    API-->>CRON: ✅ Sync terminée
+            </div>
+
+            <h3>Sources RSS configurées</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Source</th>
+                        <th>URL Feed</th>
+                        <th>Priorité</th>
+                        <th>Articles/sync</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Midi Madagascar</td>
+                        <td><code>midi-madagasikara.mg/feed/</code></td>
+                        <td><span class="badge badge-primary">Haute</span></td>
+                        <td>15</td>
+                    </tr>
+                    <tr>
+                        <td>La Gazette DGI</td>
+                        <td><code>lagazette-dgi.com/feed/</code></td>
+                        <td><span class="badge badge-primary">Haute</span></td>
+                        <td>15</td>
+                    </tr>
+                    <tr>
+                        <td>L'Express Madagascar</td>
+                        <td><code>lexpress.mg/feed/</code></td>
+                        <td><span class="badge badge-primary">Haute</span></td>
+                        <td>15</td>
+                    </tr>
+                    <tr>
+                        <td>24h Mada</td>
+                        <td><code>24hmada.com/feed/</code></td>
+                        <td><span class="badge badge-info">Normale</span></td>
+                        <td>8</td>
+                    </tr>
+                    <tr>
+                        <td>News Mada</td>
+                        <td><code>newsmada.com/feed/</code></td>
+                        <td><span class="badge badge-info">Normale</span></td>
+                        <td>8</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Architecture AI -->
+        <section class="section">
+            <h2>🤖 Pipeline d'Enrichissement AI</h2>
+
+            <div class="mermaid">
+flowchart LR
+    subgraph Input["📥 Entrée"]
+        T[Titre original]
+        S[Résumé RSS]
+        U[URL source]
+    end
+
+    subgraph Process["⚙️ Traitement"]
+        F[Fetch contenu complet]
+        P[Build prompt]
+    end
+
+    subgraph AI["🤖 AI Providers"]
+        G[Groq<br/>Llama 3.3 70B<br/>GRATUIT]
+        C[Claude<br/>Haiku<br/>Payant]
+        M[Gemini<br/>2.0 Flash<br/>Quota limité]
+    end
+
+    subgraph Output["📤 Sortie"]
+        NT[Nouveau titre]
+        NS[Nouveau résumé]
+        NC[Contenu enrichi]
+        TG[Tags générés]
+    end
+
+    Input --> Process
+    Process --> G
+    G -->|Échec| C
+    C -->|Échec| M
+    G --> Output
+    C --> Output
+    M --> Output
+            </div>
+
+            <h3>Configuration AI</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Provider</th>
+                        <th>Modèle</th>
+                        <th>Coût</th>
+                        <th>Limite</th>
+                        <th>Priorité</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Groq</strong></td>
+                        <td><code>llama-3.3-70b-versatile</code></td>
+                        <td><span class="badge badge-success">Gratuit</span></td>
+                        <td>14,400 req/jour</td>
+                        <td>1 (Principal)</td>
+                    </tr>
+                    <tr>
+                        <td>Claude</td>
+                        <td><code>claude-3-haiku</code></td>
+                        <td><span class="badge badge-warning">$0.25/1M tokens</span></td>
+                        <td>Illimité</td>
+                        <td>2 (Fallback)</td>
+                    </tr>
+                    <tr>
+                        <td>Gemini</td>
+                        <td><code>gemini-2.0-flash</code></td>
+                        <td><span class="badge badge-primary">Quota épuisé</span></td>
+                        <td>0 (free tier)</td>
+                        <td>3 (Dernier recours)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Schéma Base de Données -->
+        <section class="section">
+            <h2>🗄️ Schéma Base de Données</h2>
+
+            <div class="mermaid">
+erDiagram
+    Article ||--o{ ArticleMedia : has
+    Article }o--|| Category : belongs_to
+    Admin ||--o{ Article : creates
+
+    Article {
+        string id PK
+        string title
+        string slug UK
+        string summary
+        text content
+        text originalContent
+        string imageUrl
+        string sourceUrl
+        string sourceName
+        string status
+        datetime publishedAt
+        boolean isFeatured
+        boolean isBreaking
+        boolean isFromRSS
+        boolean isAiEnhanced
+        boolean hasCustomImage
+        int reliabilityScore
+        string reliabilityLabel
+        int views
+        string categoryId FK
+    }
+
+    Category {
+        string id PK
+        string name UK
+        string slug UK
+        string color
+        string description
+    }
+
+    Admin {
+        string id PK
+        string username UK
+        string passwordHash
+        string role
+        datetime lastLogin
+    }
+
+    ArticleMedia {
+        string id PK
+        string articleId FK
+        string mediaId FK
+        int position
+    }
+
+    Media {
+        string id PK
+        string filename
+        string url
+        string type
+        int size
+    }
+
+    HistoricalEvent {
+        string id PK
+        int day
+        int month
+        int year
+        string title
+        text description
+        boolean isMadagascar
+    }
+            </div>
+
+            <h3>Index de Performance</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Table</th>
+                        <th>Index</th>
+                        <th>Colonnes</th>
+                        <th>Usage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Article</td>
+                        <td>idx_published</td>
+                        <td><code>publishedAt DESC, status</code></td>
+                        <td>Liste articles récents</td>
+                    </tr>
+                    <tr>
+                        <td>Article</td>
+                        <td>idx_category</td>
+                        <td><code>categoryId, status, publishedAt</code></td>
+                        <td>Filtrage par catégorie</td>
+                    </tr>
+                    <tr>
+                        <td>Article</td>
+                        <td>idx_featured</td>
+                        <td><code>isFeatured, status</code></td>
+                        <td>Articles à la une</td>
+                    </tr>
+                    <tr>
+                        <td>Article</td>
+                        <td>idx_source</td>
+                        <td><code>sourceUrl</code></td>
+                        <td>Détection doublons RSS</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- API Endpoints -->
+        <section class="section">
+            <h2>🔌 API Endpoints</h2>
+
+            <h3>Public APIs</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Méthode</th>
+                        <th>Endpoint</th>
+                        <th>Description</th>
+                        <th>Rate Limit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-success">GET</span></td>
+                        <td><code>/api/news</code></td>
+                        <td>Liste des articles publiés</td>
+                        <td>100/min</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-success">GET</span></td>
+                        <td><code>/api/history/today</code></td>
+                        <td>Événements historiques du jour</td>
+                        <td>60/min</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-info">POST</span></td>
+                        <td><code>/api/images/search</code></td>
+                        <td>Recherche d'images contextuelles</td>
+                        <td>30/min</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-info">POST</span></td>
+                        <td><code>/api/generate-image</code></td>
+                        <td>Génération image AI (fallback)</td>
+                        <td>10/min</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Cron Jobs (Automatiques)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Endpoint</th>
+                        <th>Fréquence</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>/api/cron/sync-rss</code></td>
+                        <td>Toutes les 2h</td>
+                        <td>Synchronisation RSS + enrichissement AI</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/cron/enhance-articles</code></td>
+                        <td>Toutes les 6h</td>
+                        <td>Enrichissement articles non traités</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/cron/publish</code></td>
+                        <td>Toutes les 4h</td>
+                        <td>Publication articles programmés</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Admin APIs (Authentifiées)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Méthode</th>
+                        <th>Endpoint</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-info">POST</span></td>
+                        <td><code>/api/admin/login</code></td>
+                        <td>Connexion admin (bcrypt)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-success">GET</span></td>
+                        <td><code>/api/admin/articles</code></td>
+                        <td>Liste tous les articles</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-info">POST</span></td>
+                        <td><code>/api/admin/articles</code></td>
+                        <td>Créer un article</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-warning">PUT</span></td>
+                        <td><code>/api/admin/articles/[id]</code></td>
+                        <td>Modifier un article</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-primary">DELETE</span></td>
+                        <td><code>/api/admin/articles/[id]</code></td>
+                        <td>Supprimer un article</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Composants Frontend -->
+        <section class="section">
+            <h2>⚛️ Architecture Frontend</h2>
+
+            <div class="mermaid">
+flowchart TB
+    subgraph Pages["📄 Pages (App Router)"]
+        HOME[/ - Accueil]
+        POL[/politique]
+        ECO[/economie]
+        HIST[/histoire]
+        DEC[/decouvrir]
+        ADMIN[/admin/*]
+    end
+
+    subgraph Components["🧩 Composants"]
+        HEAD[Header]
+        CARD[NewsCard]
+        BRIEF[BriefMatinal]
+        LIVE[LiveNewsFeed]
+        MODAL[ArticleModal]
+        HORO[HoroscopeSection]
+        HISTT[HistoryToday]
+    end
+
+    subgraph Hooks["🪝 Hooks"]
+        AUTO[useAutoRefresh]
+        TIME[useTimeAgo]
+        STORE[useStore]
+    end
+
+    subgraph State["📦 State (Zustand)"]
+        FILT[Filtres]
+        SEARCH[Recherche]
+        SOURCE[Source sélectionnée]
+    end
+
+    Pages --> Components
+    Components --> Hooks
+    Hooks --> State
+            </div>
+
+            <h3>Composants principaux</h3>
+            <div class="tech-stack">
+                <div class="tech-card">
+                    <h4>NewsCard</h4>
+                    <ul>
+                        <li>4 variants: default, featured, compact, timeline</li>
+                        <li>Chargement image lazy</li>
+                        <li>Cache images AI</li>
+                        <li>Memoization (React.memo)</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>BriefMatinal</h4>
+                    <ul>
+                        <li>7 articles du jour</li>
+                        <li>Article featured en grand</li>
+                        <li>Grille responsive</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>LiveNewsFeed</h4>
+                    <ul>
+                        <li>Auto-refresh 15 min</li>
+                        <li>Notification nouveaux articles</li>
+                        <li>Infinite scroll</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>HistoryToday</h4>
+                    <ul>
+                        <li>Événements du jour</li>
+                        <li>Rotation auto 6s</li>
+                        <li>Badge Madagascar</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Variables d'environnement -->
+        <section class="section">
+            <h2>🔐 Variables d'Environnement</h2>
+
+            <table class="env-table">
+                <thead>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Description</th>
+                        <th>Requis</th>
+                        <th>Exemple</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>DATABASE_URL</code></td>
+                        <td>URL de connexion PostgreSQL (Neon)</td>
+                        <td><span class="badge badge-primary">Oui</span></td>
+                        <td><code>postgresql://user:pass@host/db</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>GROQ_API_KEY</code></td>
+                        <td>Clé API Groq (gratuit)</td>
+                        <td><span class="badge badge-success">Recommandé</span></td>
+                        <td><code>gsk_xxx...</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>GOOGLE_GEMINI_API_KEY</code></td>
+                        <td>Clé API Gemini (fallback)</td>
+                        <td><span class="badge badge-info">Optionnel</span></td>
+                        <td><code>AIza...</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>ANTHROPIC_API_KEY</code></td>
+                        <td>Clé API Claude (payant)</td>
+                        <td><span class="badge badge-info">Optionnel</span></td>
+                        <td><code>sk-ant-...</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>PIXABAY_API_KEY</code></td>
+                        <td>Clé Pixabay (images gratuites)</td>
+                        <td><span class="badge badge-success">Recommandé</span></td>
+                        <td><code>12345678-xxx</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>PEXELS_API_KEY</code></td>
+                        <td>Clé Pexels (images)</td>
+                        <td><span class="badge badge-info">Optionnel</span></td>
+                        <td><code>xxx...</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>CRON_SECRET</code></td>
+                        <td>Secret pour sécuriser les cron jobs</td>
+                        <td><span class="badge badge-warning">Production</span></td>
+                        <td><code>random-secret-string</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Déploiement -->
+        <section class="section">
+            <h2>☁️ Infrastructure de Déploiement</h2>
+
+            <div class="mermaid">
+flowchart LR
+    subgraph Dev["💻 Développement"]
+        LOCAL[localhost:3000]
+        SQLITE[(SQLite dev.db)]
+    end
+
+    subgraph CI["🔄 CI/CD"]
+        GIT[GitHub Push]
+        BUILD[npm run build]
+        MIGRATE[prisma migrate]
+    end
+
+    subgraph Prod["🚀 Production"]
+        RENDER[Render.com]
+        NEON[(Neon PostgreSQL)]
+        CDN[CDN Assets]
+    end
+
+    subgraph Crons["⏰ Cron Jobs"]
+        C1[sync-rss<br/>2h]
+        C2[enhance<br/>6h]
+        C3[publish<br/>4h]
+    end
+
+    Dev --> CI
+    CI --> Prod
+    Prod --> Crons
+    Crons --> Prod
+            </div>
+
+            <h3>Configuration Render (render.yaml)</h3>
+            <div style="background: #1e293b; padding: 1rem; border-radius: 8px; overflow-x: auto;">
+<pre style="color: #e2e8f0; margin: 0; font-family: 'Fira Code', monospace; font-size: 0.85rem;">
+services:
+  - type: web
+    name: mada-flash
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mada-flash-db
+      - key: GROQ_API_KEY
+        sync: false
+
+  - type: cron
+    name: sync-rss
+    schedule: "0 */2 * * *"
+    startCommand: curl "$RENDER_EXTERNAL_URL/api/cron/sync-rss"
+</pre>
+            </div>
+        </section>
+
+        <!-- Sécurité -->
+        <section class="section">
+            <h2>🔒 Sécurité</h2>
+
+            <div class="tech-stack">
+                <div class="tech-card">
+                    <h4>🔐 Authentification</h4>
+                    <ul>
+                        <li>bcrypt pour hash mots de passe</li>
+                        <li>Sessions HTTP-only cookies</li>
+                        <li>CSRF protection</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>🛡️ Rate Limiting</h4>
+                    <ul>
+                        <li>In-memory rate limiter</li>
+                        <li>Limites par endpoint</li>
+                        <li>Headers X-RateLimit-*</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>✅ Validation</h4>
+                    <ul>
+                        <li>Zod schemas</li>
+                        <li>Sanitization inputs</li>
+                        <li>Type-safe APIs</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>🔑 Secrets</h4>
+                    <ul>
+                        <li>Variables d'environnement</li>
+                        <li>Pas de secrets dans le code</li>
+                        <li>CRON_SECRET pour jobs</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Performances -->
+        <section class="section">
+            <h2>⚡ Optimisations Performance</h2>
+
+            <div class="tech-stack">
+                <div class="tech-card">
+                    <h4>🗄️ Base de données</h4>
+                    <ul>
+                        <li>Index composites optimisés</li>
+                        <li>Connexion pooling (Neon)</li>
+                        <li>Queries avec select spécifique</li>
+                        <li>Pagination efficace</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>🖼️ Images</h4>
+                    <ul>
+                        <li>Lazy loading</li>
+                        <li>Cache client-side</li>
+                        <li>Recherche parallélisée</li>
+                        <li>Fallback gracieux</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>⚛️ React</h4>
+                    <ul>
+                        <li>React.memo sur NewsCard</li>
+                        <li>useMemo pour filtres</li>
+                        <li>useCallback pour handlers</li>
+                        <li>Batch processing</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>🌐 Réseau</h4>
+                    <ul>
+                        <li>Compression gzip</li>
+                        <li>CDN pour assets</li>
+                        <li>Prefetch des pages</li>
+                        <li>API response caching</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>📚 Documentation générée automatiquement pour <strong>Mada-Flash</strong></p>
+        <p style="margin-top: 0.5rem;">Next.js 16 • React 19 • PostgreSQL • Groq AI</p>
+    </footer>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#ff6b35',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#ff3d7f',
+                lineColor: '#64748b',
+                secondaryColor: '#004e64',
+                tertiaryColor: '#f1f5f9',
+                fontSize: '14px'
+            },
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            },
+            sequence: {
+                useMaxWidth: true,
+                mirrorActors: false
+            }
+        });
+    </script>
+</body>
+</html>

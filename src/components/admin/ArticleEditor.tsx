@@ -42,6 +42,7 @@ interface Article {
   scheduledAt?: string;
   isFeatured: boolean;
   isBreaking: boolean;
+  hasCustomImage?: boolean; // Track manual image uploads - AI won't regenerate
 }
 
 interface ArticleEditorProps {
@@ -64,6 +65,7 @@ export default function ArticleEditor({ article, onSave, onClose }: ArticleEdito
     scheduledAt: '',
     isFeatured: false,
     isBreaking: false,
+    hasCustomImage: false,
   });
   const [categories, setCategories] = useState<Category[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -264,9 +266,14 @@ export default function ArticleEditor({ article, onSave, onClose }: ArticleEdito
         }
       }
 
+      // Set hasCustomImage based on imageMode
+      // If user chose 'custom' mode (upload/URL), AI won't regenerate the image
+      const hasCustomImage = imageMode === 'custom';
+
       await onSave({
         ...formData,
         imageUrl,
+        hasCustomImage,
       });
     } catch (err) {
       setError('Erreur lors de la sauvegarde');

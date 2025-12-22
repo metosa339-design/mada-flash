@@ -1,19 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateCredentials, createSession } from '@/lib/auth';
+import { loginSchema, validateData } from '@/lib/validations';
+import { checkRateLimit, getClientIdentifier, getRateLimitHeaders } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { username, password } = body;
+    // Rate limiting for auth (strict: 5 attempts per 15 minutes)
+    const clientId = getClientIdentifier(request);
+    const rateLimit = checkRateLimit(clientId, 'auth');
 
-    if (!username || !password) {
+    if (!rateLimit.success) {
+      const response = NextResponse.json(
+        { success: false, error: 'Trop de tentatives. Réessayez plus tard.' },
+        { status: 429 }
+      );
+      Object.entries(getRateLimitHeaders(rateLimit)).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+      return response;
+    }
+
+    const body = await request.json();
+
+    // Validate input with Zod
+    const validation = validateData(loginSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: 'Nom d\'utilisateur et mot de passe requis' },
+        { success: false, error: 'Données invalides', details: validation.errors },
         { status: 400 }
       );
     }
 
-    const user = validateCredentials(username, password);
+    const { username, password } = validation.data;
+    const user = await validateCredentials(username, password);
 
     if (!user) {
       return NextResponse.json(

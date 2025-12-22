@@ -148,12 +148,12 @@ async function generateImageWithGemini(prompt: string): Promise<string | null> {
   }
 }
 
-// Try Gemini 2.0 for image generation
+// Try Gemini for image generation
 async function tryGemini2ImageGeneration(prompt: string, apiKey: string): Promise<string | null> {
   try {
-    // Use gemini-2.0-flash-exp-image-generation model specifically for images
+    // Use gemini-1.5-flash model for images
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {

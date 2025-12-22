@@ -85,6 +85,10 @@ const MALAGASY_INDICATORS = [
 // Cache pour les traductions (évite les appels API répétés)
 const translationCache = new Map<string, string>();
 
+// Cache pour les images récemment utilisées (TTL: 5 minutes)
+let recentlyUsedImagesCache: { data: Set<string>; timestamp: number } | null = null;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 // Fonction pour détecter si le texte contient des mots malgaches
 function containsMalagasyWords(text: string): boolean {
   const lowerText = text.toLowerCase();
@@ -113,7 +117,7 @@ async function translateMalagasyWithGemini(title: string, summary: string): Prom
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -240,8 +244,14 @@ const MADAGASCAR_TERMS = [
   'african landscape', 'indian ocean', 'rice field asia'
 ];
 
-// Get recently used image URLs from database (last 30 days)
+// Get recently used image URLs from database (last 30 days) - WITH CACHE
 export async function getRecentlyUsedImages(): Promise<Set<string>> {
+  // Check cache first
+  if (recentlyUsedImagesCache && Date.now() - recentlyUsedImagesCache.timestamp < CACHE_TTL) {
+    console.log(`Using cached recently used images (${recentlyUsedImagesCache.data.size} images)`);
+    return recentlyUsedImagesCache.data;
+  }
+
   try {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -261,7 +271,10 @@ export async function getRecentlyUsedImages(): Promise<Set<string>> {
       }
     }
 
-    console.log(`Found ${usedUrls.size} recently used images to avoid duplicates`);
+    // Update cache
+    recentlyUsedImagesCache = { data: usedUrls, timestamp: Date.now() };
+
+    console.log(`Found ${usedUrls.size} recently used images to avoid duplicates (cached)`);
     return usedUrls;
   } catch (error) {
     console.error('Error fetching recently used images:', error);
@@ -700,7 +713,7 @@ export async function generateAIImage(query: string, title: string): Promise<Ima
   try {
     // Use Gemini's image generation endpoint
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -749,7 +762,7 @@ export async function generateAIImage(query: string, title: string): Promise<Ima
   return null;
 }
 
-// Main search function - searches all sources in priority order with duplicate avoidance
+// Main search function - PARALLELIZED searches for maximum performance
 export async function searchImage(
   title: string,
   summary?: string,
@@ -757,6 +770,8 @@ export async function searchImage(
   forceAI: boolean = false,
   excludeUrls?: Set<string>
 ): Promise<ImageResult | null> {
+  const startTime = Date.now();
+
   // Extract search keywords (now async to support Malagasy translation)
   const searchQuery = await extractKeywords(title, summary, category);
 
@@ -767,19 +782,24 @@ export async function searchImage(
 
   let image: ImageResult | null = null;
 
-  // If not forcing AI, try free image sources first
+  // If not forcing AI, try free image sources in PARALLEL
   if (!forceAI) {
-    // Try Pixabay first (most generous free tier)
-    image = await searchPixabay(searchQuery, category, usedImages);
+    // Launch all searches in parallel for maximum speed
+    const searchPromises = [
+      searchPixabay(searchQuery, category, usedImages).catch(() => null),
+      searchPexels(searchQuery, usedImages).catch(() => null),
+      searchUnsplash(searchQuery, usedImages).catch(() => null),
+    ];
 
-    // Try Pexels if Pixabay fails
-    if (!image) {
-      image = await searchPexels(searchQuery, usedImages);
-    }
+    // Use Promise.allSettled to get all results, even if some fail
+    const results = await Promise.allSettled(searchPromises);
 
-    // Try Unsplash if others fail
-    if (!image) {
-      image = await searchUnsplash(searchQuery, usedImages);
+    // Priority order: Pixabay > Pexels > Unsplash
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value) {
+        image = result.value;
+        break;
+      }
     }
   }
 
@@ -788,6 +808,9 @@ export async function searchImage(
     console.log('No unique free image found, falling back to AI generation...');
     image = await generateAIImage(searchQuery, title);
   }
+
+  const duration = Date.now() - startTime;
+  console.log(`Image search completed in ${duration}ms`);
 
   return image;
 }

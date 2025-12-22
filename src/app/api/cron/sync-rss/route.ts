@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { checkRateLimit, getClientIdentifier, getRateLimitHeaders } from '@/lib/rate-limit';
 
 // AI Enhancement Types
 interface EnhancedArticle {
@@ -285,30 +286,14 @@ async function fetchFullArticleContent(sourceUrl: string): Promise<string | null
   }
 }
 
-// AI Enhancement using Gemini - Optimized for captivating, concise content
-async function enhanceArticleWithAI(
+// Build prompt for AI enhancement
+function buildRSSEnhancementPrompt(
   originalTitle: string,
-  originalSummary: string,
-  category: string,
+  sourceContent: string,
   sourceName: string,
-  sourceUrl?: string
-): Promise<EnhancedArticle | null> {
-  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
-  if (!apiKey) return null;
-
-  // Try to fetch full article content for better context
-  let fullContent = '';
-  if (sourceUrl) {
-    const fetched = await fetchFullArticleContent(sourceUrl);
-    if (fetched && fetched.length > originalSummary.length) {
-      fullContent = fetched;
-      console.log(`[AI] Fetched ${fullContent.length} chars from source`);
-    }
-  }
-
-  const sourceContent = fullContent || originalSummary;
-
-  const prompt = `Tu es un journaliste expert de Madagascar. Réécris cet article de manière CAPTIVANTE et PROFESSIONNELLE.
+  category: string
+): string {
+  return `Tu es un journaliste expert de Madagascar. Réécris cet article de manière CAPTIVANTE et PROFESSIONNELLE.
 
 **SOURCE:**
 Titre: "${originalTitle}"
@@ -364,27 +349,12 @@ Pourquoi c'est important ou quelle suite.
   "factCheckNotes": "Analyse de fiabilité"
 }
 
-RÉPONDS UNIQUEMENT EN JSON.`;
+RÉPONDS UNIQUEMENT EN JSON VALIDE, sans texte avant ou après.`;
+}
 
+// Parse AI response to EnhancedArticle
+function parseEnhancedArticle(textContent: string): EnhancedArticle | null {
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.7, topP: 0.9, maxOutputTokens: 2048 },
-        }),
-      }
-    );
-
-    if (!response.ok) return null;
-
-    const result = await response.json();
-    const textContent = result.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!textContent) return null;
-
     let jsonStr = textContent;
     const jsonMatch = textContent.match(/```json\s*([\s\S]*?)\s*```/) ||
                       textContent.match(/\{[\s\S]*\}/);
@@ -398,12 +368,160 @@ RÉPONDS UNIQUEMENT EN JSON.`;
 
     const enhanced = JSON.parse(jsonStr) as EnhancedArticle;
     if (!enhanced.title || !enhanced.content) return null;
+    return enhanced;
+  } catch {
+    return null;
+  }
+}
+
+// Enhancement using Claude API
+async function enhanceWithClaude(prompt: string): Promise<EnhancedArticle | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 2048,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) return null;
+    const result = await response.json();
+    const textContent = result.content?.[0]?.text;
+    if (!textContent) return null;
+
+    return parseEnhancedArticle(textContent);
+  } catch (error) {
+    console.error('Claude enhancement error:', error);
+    return null;
+  }
+}
+
+// Enhancement using Groq API (Free - Llama 3)
+async function enhanceWithGroq(prompt: string): Promise<EnhancedArticle | null> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'Tu réponds UNIQUEMENT en JSON valide. Les valeurs de chaîne doivent utiliser \\n pour les sauts de ligne, pas de vraies nouvelles lignes.'
+          },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 2048,
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    if (!response.ok) return null;
+    const result = await response.json();
+    const textContent = result.choices?.[0]?.message?.content;
+    if (!textContent) return null;
+
+    // With json_object mode, parse directly
+    const enhanced = JSON.parse(textContent) as EnhancedArticle;
+    if (!enhanced.title || !enhanced.content) return null;
 
     return enhanced;
   } catch (error) {
-    console.error('AI enhancement error:', error);
+    console.error('Groq enhancement error:', error);
     return null;
   }
+}
+
+// Enhancement using Gemini API
+async function enhanceWithGemini(prompt: string): Promise<EnhancedArticle | null> {
+  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7, topP: 0.9, maxOutputTokens: 2048 },
+        }),
+      }
+    );
+
+    if (!response.ok) return null;
+    const result = await response.json();
+    const textContent = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!textContent) return null;
+
+    return parseEnhancedArticle(textContent);
+  } catch (error) {
+    console.error('Gemini enhancement error:', error);
+    return null;
+  }
+}
+
+// AI Enhancement - tries Groq first (free), then Claude, then Gemini
+async function enhanceArticleWithAI(
+  originalTitle: string,
+  originalSummary: string,
+  category: string,
+  sourceName: string,
+  sourceUrl?: string
+): Promise<EnhancedArticle | null> {
+  const hasGroqKey = !!process.env.GROQ_API_KEY;
+  const hasClaudeKey = !!process.env.ANTHROPIC_API_KEY;
+  const hasGeminiKey = !!process.env.GOOGLE_GEMINI_API_KEY;
+
+  if (!hasGroqKey && !hasClaudeKey && !hasGeminiKey) return null;
+
+  // Try to fetch full article content for better context
+  let fullContent = '';
+  if (sourceUrl) {
+    const fetched = await fetchFullArticleContent(sourceUrl);
+    if (fetched && fetched.length > originalSummary.length) {
+      fullContent = fetched;
+      console.log(`[AI] Fetched ${fullContent.length} chars from source`);
+    }
+  }
+
+  const sourceContent = fullContent || originalSummary;
+  const prompt = buildRSSEnhancementPrompt(originalTitle, sourceContent, sourceName, category);
+
+  // Try Groq first (free), then Claude, then Gemini
+  if (hasGroqKey) {
+    const result = await enhanceWithGroq(prompt);
+    if (result) return result;
+  }
+
+  if (hasClaudeKey) {
+    const result = await enhanceWithClaude(prompt);
+    if (result) return result;
+  }
+
+  if (hasGeminiKey) {
+    return await enhanceWithGemini(prompt);
+  }
+
+  return null;
 }
 
 function generateSlug(title: string): string {
@@ -664,6 +782,21 @@ async function syncRSSFeeds() {
 
 // Cron endpoint - runs automatically
 export async function GET(request: NextRequest) {
+  // Rate limiting for cron endpoints
+  const clientId = getClientIdentifier(request);
+  const rateLimit = checkRateLimit(clientId, 'cron');
+
+  if (!rateLimit.success) {
+    const response = NextResponse.json(
+      { success: false, error: 'Rate limit exceeded' },
+      { status: 429 }
+    );
+    Object.entries(getRateLimitHeaders(rateLimit)).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    return response;
+  }
+
   // Verify cron secret in production
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;

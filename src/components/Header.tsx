@@ -10,8 +10,14 @@ import {
   Bell,
   TrendingUp,
   Clock,
-  ChevronDown
+  ChevronDown,
+  BookOpen,
+  Landmark,
+  Mountain,
+  Leaf,
+  Crown
 } from 'lucide-react';
+import Link from 'next/link';
 import { useStore } from '@/store/useStore';
 import { newsSources } from '@/data/sources';
 import { categories, categoryLabels } from '@/data/news';
@@ -20,6 +26,7 @@ export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
+  const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
   const {
     isMenuOpen,
     toggleMenu,
@@ -115,17 +122,92 @@ export default function Header() {
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center gap-1">
-              <button
-                onClick={clearFilters}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  !selectedCategory && !selectedSource
-                    ? 'gradient-bg text-white'
-                    : 'hover:bg-gray-100'
-                }`}
+              <Link
+                href="/"
+                className="px-4 py-2 rounded-full text-sm font-medium transition-all hover:bg-gray-100"
               >
-                Tout
-              </button>
-              {categories.slice(0, 5).map((cat) => (
+                Actualités
+              </Link>
+
+              {/* History Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowHistoryDropdown(!showHistoryDropdown)}
+                  className="flex items-center gap-1 px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-100 bg-amber-50 text-amber-700"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Histoire
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                <AnimatePresence>
+                  {showHistoryDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 p-2"
+                    >
+                      <Link
+                        href="/histoire"
+                        onClick={() => setShowHistoryDropdown(false)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-amber-50 transition-all"
+                      >
+                        <BookOpen className="w-5 h-5 text-amber-600" />
+                        <div>
+                          <div className="font-medium">Timeline</div>
+                          <div className="text-xs text-gray-500">Frise chronologique</div>
+                        </div>
+                      </Link>
+                      <Link
+                        href="/politique"
+                        onClick={() => setShowHistoryDropdown(false)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-blue-50 transition-all"
+                      >
+                        <Crown className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <div className="font-medium">Dirigeants</div>
+                          <div className="text-xs text-gray-500">Rois et Présidents</div>
+                        </div>
+                      </Link>
+                      <Link
+                        href="/economie"
+                        onClick={() => setShowHistoryDropdown(false)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-green-50 transition-all"
+                      >
+                        <Landmark className="w-5 h-5 text-green-600" />
+                        <div>
+                          <div className="font-medium">Économie</div>
+                          <div className="text-xs text-gray-500">Dashboard économique</div>
+                        </div>
+                      </Link>
+                      <Link
+                        href="/ressources"
+                        onClick={() => setShowHistoryDropdown(false)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-gray-50 transition-all"
+                      >
+                        <Mountain className="w-5 h-5 text-gray-600" />
+                        <div>
+                          <div className="font-medium">Ressources</div>
+                          <div className="text-xs text-gray-500">Mines et richesses</div>
+                        </div>
+                      </Link>
+                      <Link
+                        href="/decouvrir"
+                        onClick={() => setShowHistoryDropdown(false)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-emerald-50 transition-all"
+                      >
+                        <Leaf className="w-5 h-5 text-emerald-600" />
+                        <div>
+                          <div className="font-medium">Découvrir</div>
+                          <div className="text-xs text-gray-500">Faune, flore, culture</div>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {categories.slice(0, 4).map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
@@ -276,10 +358,59 @@ export default function Header() {
                   </button>
                 </div>
 
-                {/* Categories */}
+                {/* Histoire de Madagascar */}
                 <div className="mb-6">
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                    Catégories
+                    Histoire de Madagascar
+                  </h3>
+                  <div className="space-y-1">
+                    <Link
+                      href="/histoire"
+                      onClick={toggleMenu}
+                      className="flex items-center gap-2 w-full text-left px-4 py-2 rounded-lg hover:bg-amber-50 transition-all"
+                    >
+                      <BookOpen className="w-4 h-4 text-amber-600" />
+                      Timeline
+                    </Link>
+                    <Link
+                      href="/politique"
+                      onClick={toggleMenu}
+                      className="flex items-center gap-2 w-full text-left px-4 py-2 rounded-lg hover:bg-blue-50 transition-all"
+                    >
+                      <Crown className="w-4 h-4 text-blue-600" />
+                      Dirigeants
+                    </Link>
+                    <Link
+                      href="/economie"
+                      onClick={toggleMenu}
+                      className="flex items-center gap-2 w-full text-left px-4 py-2 rounded-lg hover:bg-green-50 transition-all"
+                    >
+                      <Landmark className="w-4 h-4 text-green-600" />
+                      Économie
+                    </Link>
+                    <Link
+                      href="/ressources"
+                      onClick={toggleMenu}
+                      className="flex items-center gap-2 w-full text-left px-4 py-2 rounded-lg hover:bg-gray-50 transition-all"
+                    >
+                      <Mountain className="w-4 h-4 text-gray-600" />
+                      Ressources
+                    </Link>
+                    <Link
+                      href="/decouvrir"
+                      onClick={toggleMenu}
+                      className="flex items-center gap-2 w-full text-left px-4 py-2 rounded-lg hover:bg-emerald-50 transition-all"
+                    >
+                      <Leaf className="w-4 h-4 text-emerald-600" />
+                      Découvrir
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Actualités - Categories */}
+                <div className="mb-6">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                    Actualités
                   </h3>
                   <div className="space-y-1">
                     <button
