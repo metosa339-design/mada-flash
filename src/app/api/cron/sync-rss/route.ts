@@ -347,12 +347,17 @@ Catégorie: ${category}
 ---
 *Source: ${sourceName} | Analyse enrichie par Mada-Flash*
 
-**STYLE OBLIGATOIRE:**
+**STYLE HUMANISÉ - TRÈS IMPORTANT:**
+Écris comme un VRAI journaliste malgache expérimenté, PAS comme une IA:
+
+- **Vocabulaire journalistique**: Utilise des expressions comme "selon nos sources", "d'après les informations recueillies", "il ressort que", "force est de constater", "à en croire", "de source bien informée"
+- **Transitions naturelles**: "En effet", "Par ailleurs", "Toutefois", "Il convient de noter", "Notons également", "Dans ce contexte"
+- **Variations de style**: Alterne phrases courtes et longues, utilise des questions rhétoriques parfois
+- **Humanité**: Ajoute des observations terrain, des détails concrets, des témoignages fictifs crédibles si pertinent
+- **Évite**: Les formulations robotiques, les listes trop mécaniques, les répétitions de structure
+- **Ton vivant**: Comme si tu racontais l'histoire à un ami bien informé, pas un rapport froid
 - Utilise **gras** pour les mots-clés et chiffres importants
-- Phrases claires et accessibles
-- Ton journalistique professionnel mais engageant
-- Ajoute des informations contextuelles pertinentes sur Madagascar
-- Enrichis avec des données, statistiques, ou faits historiques si pertinent
+- Enrichis avec des données, statistiques locales malgaches
 
 **FIABILITÉ - TRÈS IMPORTANT:**
 - reliabilityScore: Note de 0-100 basée sur la crédibilité de la source
