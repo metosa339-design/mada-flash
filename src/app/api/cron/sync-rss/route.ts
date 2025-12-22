@@ -78,22 +78,51 @@ const RSS_SOURCES = [
 // Categories prioritaires
 const PRIORITY_CATEGORIES = ['politique', 'societe'];
 
-// Mots-clés à bloquer (nécrologie, décès, etc.) - Français et Malgache
+// Mots-clés à bloquer (nécrologie, décès, etc.)
 const BLOCKED_KEYWORDS = [
-  // Français
   'nécrologie', 'necrologie', 'décès', 'deces', 'décédé', 'decede',
   'mort de', 'est mort', 'est décédé', 'est décédée', 'a péri',
   'obsèques', 'obseques', 'funérailles', 'funerailles',
   'enterrement', 'inhumation', 'hommage posthume', 'disparition de',
   'nous quitte', 'a rendu l\'âme', 'dernier adieu', 'repose en paix',
   'r.i.p', 'rip', 'in memoriam', 'en mémoire de', 'condoléances',
-  'deuil national', 'deuil', 'veillée funèbre', 'cercueil',
-  // Malgache
-  'maty', 'nodimandry', 'niala aina', 'lasa nodimandry', 'namoy ny ainy',
-  'fandevenana', 'fasana', 'fitsaboana ny maty', 'faty', 'fahafatesana',
-  'maty ny', 'namana maty', 'nalahelo', 'fisaorana faty',
-  'famangiana faty', 'filazan-doza', 'fahoriana', 'alahelo'
+  'deuil national', 'deuil', 'veillée funèbre', 'cercueil'
 ];
+
+// Mots typiquement malgaches pour détecter la langue
+const MALAGASY_INDICATORS = [
+  // Mots très courants en malgache
+  ' ny ', ' sy ', ' ary ', ' dia ', ' izay ', ' ho ', ' tsy ', ' ao ', ' eto ',
+  ' teo ', ' amin\'ny ', ' an\'ny ', ' tamin\'ny ', ' momba ', ' izao ', ' mba ',
+  ' nanao ', ' manao ', ' hoe ', ' noho ', ' satria ', ' raha ', ' fa ', ' koa ',
+  // Suffixes typiques malgaches
+  'ina ', 'ana ', 'tra ', 'ena ', 'iana ', 'oana ',
+  // Préfixes typiques
+  ' maha', ' mam', ' man', ' mif', ' mit', ' mia', ' mp',
+  // Mots spécifiques
+  'firenena', 'malagasy', 'madagasikara', 'antananarivo', 'tana',
+  'vahoaka', 'fanjakana', 'minisitra', 'filoha', 'governemanta',
+  'lalàna', 'fitsarana', 'polisy', 'zandary', 'miaramila',
+  // Expressions courantes
+  'araka ny', 'taorian\'ny', 'mialoha ny', 'nandritra ny',
+  'ho an\'ny', 'avy any', 'any amin\'ny'
+];
+
+// Fonction pour détecter si le texte est en malgache
+function isMalagasyText(title: string, summary: string): boolean {
+  const text = `${title} ${summary}`.toLowerCase();
+
+  // Compter les indicateurs malgaches trouvés
+  let malagasyCount = 0;
+  for (const indicator of MALAGASY_INDICATORS) {
+    if (text.includes(indicator.toLowerCase())) {
+      malagasyCount++;
+    }
+  }
+
+  // Si plus de 3 indicateurs malgaches trouvés, c'est probablement en malgache
+  return malagasyCount >= 3;
+}
 
 // Fonction pour vérifier si un article doit être bloqué
 function shouldBlockArticle(title: string, summary: string): boolean {
@@ -711,6 +740,12 @@ async function syncRSSFeeds() {
       // Bloquer les articles de nécrologie
       if (shouldBlockArticle(article.title, article.summary)) {
         console.log(`[CRON RSS] Bloqué (nécrologie): "${article.title.substring(0, 40)}..."`);
+        continue;
+      }
+
+      // Bloquer les articles en malgache (uniquement français)
+      if (isMalagasyText(article.title, article.summary)) {
+        console.log(`[CRON RSS] Bloqué (malgache): "${article.title.substring(0, 40)}..."`);
         continue;
       }
 
