@@ -88,35 +88,35 @@ Catégorie: ${category || 'Actualités'}
 
 📖 **CONTENU ULTRA-DÉTAILLÉ** (Structure OBLIGATOIRE):
 
-## 📌 L'essentiel
+📌 L'essentiel
 [Paragraphe d'accroche percutant - 3-4 lignes qui résument l'actualité principale avec impact]
 
-## 🔑 Les faits marquants
+🔑 Les faits marquants
 • **Fait clé 1**: Détail complet avec chiffres si disponibles
 • **Fait clé 2**: Information importante avec contexte
 • **Fait clé 3**: Élément significatif de l'actualité
 • **Fait clé 4**: Donnée ou information complémentaire
 • **Fait clé 5**: Point additionnel pertinent
 
-## 📊 Analyse approfondie
+📊 Analyse approfondie
 [Paragraphe détaillé analysant les implications de cette actualité - 150-200 mots minimum. Explique le POURQUOI et le COMMENT. Analyse les causes, les conséquences potentielles.]
 
-## 🏛️ Contexte historique et politique
+🏛️ Contexte historique et politique
 [Paragraphe expliquant le contexte de Madagascar lié à cette actualité - 100-150 mots. Fais référence à des événements passés, des tendances, des politiques en place.]
 
-## 👥 Impact sur la population
+👥 Impact sur la population
 [Comment cette actualité affecte les Malgaches au quotidien - 100-150 mots. Sois concret et précis sur les implications pour les citoyens.]
 
-## 🔮 Perspectives et enjeux futurs
+🔮 Perspectives et enjeux futurs
 [Que peut-on attendre suite à cette actualité? Quels sont les scénarios possibles? - 100-150 mots]
 
-## 💡 Ce qu'il faut retenir
+💡 Ce qu'il faut retenir
 • Point clé à retenir 1
 • Point clé à retenir 2
 • Point clé à retenir 3
 • Point clé à retenir 4
 
-## 📚 Pour aller plus loin
+📚 Pour aller plus loin
 [Suggestion de sujets connexes ou questions à suivre - 2-3 lignes]
 
 ---
