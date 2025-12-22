@@ -3,7 +3,7 @@ services:
   - type: web
     name: mada-flash
     runtime: node
-    buildCommand: npm install && npx prisma generate && npm run build
+    buildCommand: npm install && npx prisma generate && npx prisma db push --accept-data-loss && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
