@@ -286,70 +286,91 @@ async function fetchFullArticleContent(sourceUrl: string): Promise<string | null
   }
 }
 
-// Build prompt for AI enhancement
+// Build prompt for AI enhancement - RICH CONTENT VERSION
 function buildRSSEnhancementPrompt(
   originalTitle: string,
   sourceContent: string,
   sourceName: string,
   category: string
 ): string {
-  return `Tu es un journaliste expert de Madagascar. Réécris cet article de manière CAPTIVANTE et PROFESSIONNELLE.
+  return `Tu es un JOURNALISTE EXPERT et ANALYSTE de Madagascar avec 20 ans d'expérience. Tu dois transformer cette actualité en un ARTICLE COMPLET, RICHE et APPROFONDI.
 
-**SOURCE:**
+**SOURCE ORIGINALE:**
 Titre: "${originalTitle}"
-Contenu source: "${sourceContent.substring(0, 1500)}"
+Contenu: "${sourceContent.substring(0, 2000)}"
 Source: ${sourceName}
 Catégorie: ${category}
 
-**RÈGLES STRICTES - TRÈS IMPORTANT:**
+**MISSION: Créer un article ULTRA-RICHE (800-1200 mots minimum)**
 
-📰 **TITRE** (max 70 caractères):
-- Percutant, informatif, accrocheur
-- Pas de clickbait mais donne envie de lire
-- Utilise des verbes d'action forts
+📰 **TITRE** (max 80 caractères):
+- Accrocheur, informatif, professionnel
+- Doit captiver l'attention immédiatement
 
-📝 **RÉSUMÉ** (1-2 phrases, max 150 caractères):
-- L'essentiel en une phrase choc
-- Répond à: Quoi? Qui? Où?
+📝 **RÉSUMÉ** (2-3 phrases, 200 caractères):
+- L'essentiel de l'actualité en bref
+- Répond à: Quoi? Qui? Où? Quand? Pourquoi?
 
-📖 **CONTENU** (150-250 mots MAXIMUM - c'est court!):
-Structure OBLIGATOIRE:
+📖 **CONTENU ULTRA-DÉTAILLÉ** (Structure OBLIGATOIRE):
 
-**[Paragraphe d'accroche - 2 lignes max]**
-Une phrase choc qui résume l'info principale.
+## 📌 L'essentiel
+[Paragraphe d'accroche percutant - 3-4 lignes qui résument l'actualité principale avec impact]
 
-**🔑 Les faits clés:**
-• Point important 1
-• Point important 2
-• Point important 3
+## 🔑 Les faits marquants
+• **Fait clé 1**: Détail complet avec chiffres si disponibles
+• **Fait clé 2**: Information importante avec contexte
+• **Fait clé 3**: Élément significatif de l'actualité
+• **Fait clé 4**: Donnée ou information complémentaire
+• **Fait clé 5**: Point additionnel pertinent
 
-**[Contexte bref - 2-3 lignes]**
-Explication simple du contexte.
+## 📊 Analyse approfondie
+[Paragraphe détaillé analysant les implications de cette actualité - 150-200 mots minimum. Explique le POURQUOI et le COMMENT. Analyse les causes, les conséquences potentielles.]
 
-**[Conclusion/Impact - 1-2 lignes]**
-Pourquoi c'est important ou quelle suite.
+## 🏛️ Contexte historique et politique
+[Paragraphe expliquant le contexte de Madagascar lié à cette actualité - 100-150 mots. Fais référence à des événements passés, des tendances, des politiques en place.]
 
-*Source: ${sourceName}*
+## 👥 Impact sur la population
+[Comment cette actualité affecte les Malgaches au quotidien - 100-150 mots. Sois concret et précis sur les implications pour les citoyens.]
 
-**STYLE:**
-- Phrases COURTES et DIRECTES
-- **Gras** sur les mots-clés importants
-- Pas de blabla, que l'essentiel
-- Ton journalistique professionnel
-- Accessible à tous
+## 🔮 Perspectives et enjeux futurs
+[Que peut-on attendre suite à cette actualité? Quels sont les scénarios possibles? - 100-150 mots]
 
-**FORMAT JSON:**
+## 💡 Ce qu'il faut retenir
+• Point clé à retenir 1
+• Point clé à retenir 2
+• Point clé à retenir 3
+• Point clé à retenir 4
+
+## 📚 Pour aller plus loin
+[Suggestion de sujets connexes ou questions à suivre - 2-3 lignes]
+
+---
+*Source: ${sourceName} | Analyse enrichie par Mada-Flash*
+
+**STYLE OBLIGATOIRE:**
+- Utilise **gras** pour les mots-clés et chiffres importants
+- Phrases claires et accessibles
+- Ton journalistique professionnel mais engageant
+- Ajoute des informations contextuelles pertinentes sur Madagascar
+- Enrichis avec des données, statistiques, ou faits historiques si pertinent
+
+**FIABILITÉ - TRÈS IMPORTANT:**
+- reliabilityScore: Note de 0-100 basée sur la crédibilité de la source
+- reliabilityLabel: "verified" (source officielle), "likely" (source fiable), "unverified" (à vérifier), "disputed" (controversé)
+- factCheckNotes: Analyse détaillée de la fiabilité (3-5 lignes minimum)
+
+**FORMAT JSON STRICT:**
 {
-  "title": "Titre accrocheur ici",
-  "summary": "Résumé percutant",
-  "content": "Contenu structuré avec markdown...",
-  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+  "title": "Titre accrocheur",
+  "summary": "Résumé complet en 2-3 phrases",
+  "content": "Contenu ULTRA-RICHE avec toutes les sections markdown...",
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7"],
   "reliabilityScore": 75,
   "reliabilityLabel": "likely",
-  "factCheckNotes": "Analyse de fiabilité"
+  "factCheckNotes": "Analyse détaillée de fiabilité avec justification..."
 }
 
-RÉPONDS UNIQUEMENT EN JSON VALIDE, sans texte avant ou après.`;
+RÉPONDS UNIQUEMENT EN JSON VALIDE.`;
 }
 
 // Parse AI response to EnhancedArticle
@@ -389,7 +410,7 @@ async function enhanceWithClaude(prompt: string): Promise<EnhancedArticle | null
       },
       body: JSON.stringify({
         model: 'claude-3-haiku-20240307',
-        max_tokens: 2048,
+        max_tokens: 4096,
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -428,7 +449,7 @@ async function enhanceWithGroq(prompt: string): Promise<EnhancedArticle | null> 
           { role: 'user', content: prompt }
         ],
         temperature: 0.3,
-        max_tokens: 2048,
+        max_tokens: 4096,
         response_format: { type: 'json_object' }
       })
     });
@@ -462,7 +483,7 @@ async function enhanceWithGemini(prompt: string): Promise<EnhancedArticle | null
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.7, topP: 0.9, maxOutputTokens: 2048 },
+          generationConfig: { temperature: 0.7, topP: 0.9, maxOutputTokens: 4096 },
         }),
       }
     );
