@@ -72,7 +72,7 @@ export default function HistoryToday() {
     );
   }
 
-  if (!data || data.events.length === 0) {
+  if (!data || !data.events || data.events.length === 0) {
     return null;
   }
 

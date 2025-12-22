@@ -142,7 +142,7 @@ export function useAutoRefresh(options: UseAutoRefreshOptions = {}): UseAutoRefr
 
       const data: APIResponse = await response.json();
 
-      if (data.success && data.articles.length > 0) {
+      if (data.success && data.articles && data.articles.length > 0) {
         const transformed = data.articles.map((article, index) =>
           transformToNewsArticle(article, index)
         );
